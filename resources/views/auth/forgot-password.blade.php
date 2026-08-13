@@ -12,121 +12,60 @@
 @section('title', 'Recuperar senha — ' . $brandName)
 
 @section('content')
-<div class="flex min-h-full">
+<div class="relative min-h-full overflow-hidden">
+    <div class="pointer-events-none absolute inset-0 bg-linear-to-br from-sky-200 via-emerald-50 to-amber-100"></div>
+    <div class="auth-blob-a pointer-events-none absolute -left-24 -top-28 h-[28rem] w-[28rem] rounded-full bg-sky-400/40 blur-3xl"></div>
+    <div class="auth-blob-b pointer-events-none absolute -right-20 top-10 h-[24rem] w-[24rem] rounded-full bg-emerald-400/35 blur-3xl"></div>
+    <div class="auth-sun pointer-events-none absolute right-[18%] top-8 h-40 w-40 rounded-full bg-amber-300/70 blur-2xl"></div>
 
-    <aside class="auth-ink relative hidden w-[46%] overflow-hidden text-[#f4efe6] lg:flex xl:w-[44%]">
-        <div class="auth-grid pointer-events-none absolute inset-0"></div>
-        <div class="auth-grain pointer-events-none absolute inset-0"></div>
-        <div class="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-amber-700/10 blur-3xl"></div>
-        <div class="absolute inset-y-0 right-0 w-px bg-linear-to-b from-transparent via-amber-200/25 to-transparent"></div>
+    <header class="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+        <a href="{{ route('home') }}" class="flex items-center gap-3">
+            <img src="{{ $logoSrc }}" alt="{{ config('app.name') }}" class="h-9 w-auto object-contain">
+        </a>
+        <a href="{{ route('tenant.login') }}" class="rounded-full bg-white/70 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white">
+            ← Entrar
+        </a>
+    </header>
 
-        <div class="relative z-10 flex w-full flex-col justify-between px-12 py-11 xl:px-16">
-            <div class="auth-animate auth-d1 flex items-start justify-between gap-6">
-                <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    @if(!empty($settings?->logo_prefeitura_path))
-                        <span class="flex items-center gap-3 rounded-2xl bg-white/5 p-2.5 ring-1 ring-white/10">
-                            <img src="{{ $logoSrc }}" alt="{{ config('app.name') }}" class="h-10 w-auto object-contain">
-                            <img src="{{ asset('storage/'.$settings->logo_prefeitura_path) }}" alt="{{ $brandName }}" class="h-10 w-auto object-contain">
-                        </span>
-                    @elseif(isset($tenant))
-                        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/8 font-display text-lg font-semibold ring-1 ring-white/15">
-                            {{ $tenant->portalBrandInitials() }}
-                        </span>
-                    @else
-                        <img src="{{ $logoSrc }}" alt="{{ config('app.name') }}" class="h-11 w-auto object-contain">
-                    @endif
-                </a>
-                <a href="{{ route('tenant.login') }}" class="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/70 transition hover:text-amber-50">
-                    Entrar
-                </a>
-            </div>
-
-            <div class="max-w-md">
-                <p class="auth-animate auth-d2 mb-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">
-                    <span class="h-px w-8 bg-amber-200/70" aria-hidden="true"></span>
-                    Segurança
-                </p>
-                <h1 class="auth-animate auth-d3 font-display text-[2.35rem] font-semibold leading-[1.12] tracking-tight text-white xl:text-[2.7rem]">
-                    Recupere o acesso<br>
-                    <em class="font-medium not-italic text-amber-100/90">com calma e segurança.</em>
-                </h1>
-                <p class="auth-animate auth-d4 mt-5 max-w-sm text-[15px] leading-relaxed text-slate-300/85">
-                    Enviamos um link temporário para o e-mail cadastrado. A senha atual continua válida até você alterá-la.
-                </p>
-
-                <ul class="auth-animate auth-d5 mt-10 space-y-3.5 border-t border-white/10 pt-8 text-sm text-slate-200/85">
-                    <li>Link válido por 60 minutos</li>
-                    <li>Verifique também spam e lixo eletrônico</li>
-                    <li>Use o mesmo e-mail da gestão da câmara</li>
-                </ul>
-            </div>
-
-            <p class="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400/80">
-                {{ config('app.name') }} · recuperação de senha
+    <div class="relative z-10 mx-auto grid min-h-[calc(100vh-5.5rem)] max-w-6xl items-center gap-10 px-5 pb-12 pt-4 sm:px-8 lg:grid-cols-12">
+        <div class="lg:col-span-6">
+            <p class="auth-in auth-d1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-800">Recuperação</p>
+            <h1 class="auth-in auth-d2 font-display mt-4 max-w-lg text-5xl font-extrabold leading-[0.95] tracking-tight text-slate-900 sm:text-6xl">
+                A gente
+                <span class="font-serif block italic font-medium text-sky-700">te devolve o acesso.</span>
+            </h1>
+            <p class="auth-in auth-d3 mt-5 max-w-md text-lg text-slate-600">
+                Link no e-mail, válido por uma hora. A senha atual continua valendo até você trocar.
             </p>
         </div>
-    </aside>
 
-    <section class="relative flex flex-1 flex-col justify-center px-6 py-12 sm:px-10 lg:px-16">
-        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgb(196_165_116/0.09),_transparent_55%)]"></div>
+        <div class="auth-in auth-d4 lg:col-span-6 lg:justify-self-end lg:w-full lg:max-w-md">
+            <div class="rounded-[1.75rem] bg-white/80 p-6 shadow-2xl shadow-sky-400/25 ring-1 ring-white backdrop-blur-xl sm:p-8">
+                <h2 class="font-display text-2xl font-extrabold text-slate-900">Esqueceu a senha?</h2>
+                <p class="mt-1 text-sm text-slate-500">Informe o e-mail da gestão.</p>
 
-        <div class="relative mx-auto w-full max-w-[26rem]">
-            <div class="mb-10 flex items-center justify-between lg:hidden">
-                <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    <img src="{{ $logoSrc }}" alt="{{ config('app.name') }}" class="h-9 w-auto object-contain">
-                </a>
-                <a href="{{ route('tenant.login') }}" class="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500 hover:text-[#001823]">Login</a>
+                @if (session('status'))
+                    <div class="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">{{ session('status') }}</div>
+                @endif
+                @if ($errors->any())
+                    <div class="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-100">{{ $errors->first() }}</div>
+                @endif
+
+                <form method="POST" action="{{ route('password.email') }}" class="mt-6 space-y-4">
+                    @csrf
+                    <div>
+                        <label for="email" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">E-mail</label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus
+                               class="auth-field w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none {{ $errors->has('email') ? 'border-red-400' : '' }}"
+                               placeholder="gestao@camara.gov.br" />
+                    </div>
+                    <x-turnstile />
+                    <button type="submit" class="auth-btn flex w-full cursor-pointer items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/30">
+                        Enviar link
+                    </button>
+                </form>
             </div>
-
-            <p class="auth-animate auth-d1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-800/70">Recuperação de acesso</p>
-            <h2 class="auth-animate auth-d2 font-display mt-2 text-3xl font-semibold tracking-tight text-[#001823]">Esqueceu a senha?</h2>
-            <p class="auth-animate auth-d3 mt-2 text-sm leading-relaxed text-stone-600">
-                Informe o e-mail cadastrado. Enviaremos um link seguro para redefinir.
-            </p>
-
-            @if (session('status'))
-                <div class="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-900">
-                    <span class="font-medium">{{ session('status') }}</span>
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="mt-6 flex items-start gap-3 rounded-2xl border border-red-200/80 bg-red-50/90 px-4 py-3.5 text-sm text-red-900">
-                    <span>{{ $errors->first() }}</span>
-                </div>
-            @endif
-
-            <form method="POST" action="{{ route('password.email') }}" class="auth-animate auth-d4 mt-8 space-y-5">
-                @csrf
-                <div>
-                    <label for="email" class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">E-mail</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus
-                           class="auth-input w-full rounded-xl border border-stone-300/80 bg-white/80 px-4 py-3.5 text-sm text-[#001823] outline-none transition placeholder:text-stone-400 {{ $errors->has('email') ? 'border-red-400' : '' }}"
-                           placeholder="gestao@camara.gov.br" />
-                    @error('email')
-                        <p class="mt-1.5 text-xs text-red-700">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <x-turnstile />
-                @error('cf-turnstile-response')
-                    <p class="text-sm text-red-700">{{ $message }}</p>
-                @enderror
-
-                <button type="submit"
-                        class="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#001823] px-6 py-3.5 text-sm font-semibold text-[#f4efe6] shadow-[0_12px_30px_-12px_rgba(0,24,35,0.55)] transition hover:bg-[#01293a] active:scale-[0.99]">
-                    Enviar link de recuperação
-                    <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                    </svg>
-                </button>
-            </form>
-
-            <p class="mt-10 border-t border-stone-300/60 pt-6 text-center text-sm text-stone-500">
-                Lembrou a senha?
-                <a href="{{ route('tenant.login') }}" class="font-semibold text-[#001823] underline decoration-stone-300 underline-offset-4 hover:decoration-[#001823]">Entrar na conta</a>
-            </p>
         </div>
-    </section>
+    </div>
 </div>
 @endsection
