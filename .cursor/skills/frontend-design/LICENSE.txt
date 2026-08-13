@@ -1,0 +1,3 @@
+This Agent Skill (SKILL.md in this folder) is project documentation for Cursor.
+You may copy, adapt, and redistribute the skill text with your project under
+terms you choose. It does not bundle third-party code.

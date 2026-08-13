@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import 'animate.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/* Dark mode baseado em classe no <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+    -webkit-text-fill-color: #111827;
+    box-shadow: 0 0 0 1000px #ffffff inset;
+    transition: background-color 9999s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark textarea:-webkit-autofill:hover,
+.dark textarea:-webkit-autofill:focus,
+.dark select:-webkit-autofill,
+.dark select:-webkit-autofill:hover,
+.dark select:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f3f4f6;
+    box-shadow: 0 0 0 1000px #1f2937 inset;
+}
+
+/* Conteúdo HTML administrado (portal institucional) — sem plugin typography */
+.portal-prose {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: rgb(51 65 85);
+}
+
+.dark .portal-prose {
+    color: rgb(203 213 225);
+}
+
+.portal-prose :where(h1, h2, h3, h4) {
+    margin-top: 2rem;
+    margin-bottom: 0.65rem;
+    font-weight: 700;
+    color: rgb(15 23 42);
+}
+
+.dark .portal-prose :where(h1, h2, h3, h4) {
+    color: rgb(248 250 252);
+}
+
+.portal-prose :where(p, blockquote, pre) {
+    margin-bottom: 1rem;
+}
+
+.portal-prose :where(ul, ol) {
+    margin: 1rem 0 1rem 1.35rem;
+    padding-left: 0.25rem;
+}
+
+.portal-prose :where(li) {
+    margin: 0.35rem 0;
+}
+
+.portal-prose :where(a) {
+    color: var(--portal-primary, #3b82f6);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.portal-prose :where(img) {
+    border-radius: 1rem;
+    margin: 1.5rem 0;
+    max-width: 100%;
+    height: auto;
+}
+
+.portal-prose--sm {
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+/* Portal: scroll-reveal — sem classes animate__ no DOM até ~10% visível (ver resources/js/app.js) */
+#portal-main .portal-animate-armed {
+    opacity: 0;
+    transform: translate3d(0, 0.75rem, 0);
+    will-change: opacity, transform;
+}
