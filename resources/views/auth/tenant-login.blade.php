@@ -30,6 +30,10 @@
                     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 font-extrabold text-xl ring-1 ring-white/20 backdrop-blur">
                         {{ $tenant->portalBrandInitials() }}
                     </div>
+                    @else
+                    <div class="flex items-center justify-center rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 shadow-inner">
+                        <img src="{{ asset('img/logo.png') }}" alt="Legiscola" class="h-14 w-auto object-contain">
+                    </div>
                     @endif
                     
                 </div>
@@ -42,7 +46,7 @@
                 
             </div>
 
-            <p class="text-lg font-extrabold leading-tight">Escola Legislativa - {{ $settings->nome_camara }}</p>
+            <p class="text-lg font-extrabold leading-tight">Escola Legislativa{{ filled($settings?->nome_camara) ? ' - '.$settings->nome_camara : '' }}</p>
 
             <div class="h-px bg-white/15"></div>
         </div>
@@ -88,7 +92,7 @@
           
             <div class="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
                 <img src="{{ asset('img/logo.png') }}" alt="Escola Legislativa" class="h-5 w-auto opacity-60">
-                <span class="text-blue-400 text-[11px]">Escola Legislativa - {{ $settings->nome_camara }}</span>
+                <span class="text-blue-400 text-[11px]">Escola Legislativa{{ filled($settings?->nome_camara) ? ' - '.$settings->nome_camara : '' }}</span>
             </div>
         </div>
     </div>
