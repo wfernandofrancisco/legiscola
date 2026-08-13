@@ -9,6 +9,9 @@
         context-label="Área do docente"
         context-hint="Acesso exclusivo para professores cadastrados pela coordenação. Use o mesmo e-mail e senha do tenant."
     >
+        @if (session('status'))
+            <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">{{ session('status') }}</div>
+        @endif
         @if ($errors->any())
             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
         @endif

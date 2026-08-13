@@ -16,7 +16,7 @@ final class TenantWebEntryUrls
      */
     public static function tenantPanelLoginAbsolute(): string
     {
-        return rtrim((string) config('app.url'), '/').'/tenant/login';
+        return rtrim(TenantUrl::appRoot(), '/').'/tenant/login';
     }
 
     /**
@@ -40,19 +40,56 @@ final class TenantWebEntryUrls
      */
     public static function afterTenantWebLogout(User $user): string
     {
+        return self::loginEntryUrl($user);
+    }
+
+    /**
+     * Login certo para o perfil: admin → /tenant/login, docente → /acesso/docente/entrar, aluno → /acesso/entrar.
+     */
+    public static function loginEntryUrl(User $user): string
+    {
         if ($user->isSuperAdmin() || $user->hasRole('central_super_admin')) {
             return route('central.login');
         }
 
         if ($user->user_type === User::TYPE_TENANT_ADMIN || $user->hasTenantRole(User::TYPE_TENANT_ADMIN)) {
-            return self::tenantPanelLoginAbsolute();
+            return url('/tenant/login');
         }
 
         if ($user->accessesDocentePortal()) {
-            return self::portalDocenteLoginAbsolute($user);
+            return TenantContext::isSet()
+                ? url('/acesso/docente/entrar')
+                : self::portalDocenteLoginAbsolute($user);
         }
 
-        return self::portalAlunoLoginAbsolute($user);
+        return TenantContext::isSet()
+            ? url('/acesso/entrar')
+            : self::portalAlunoLoginAbsolute($user);
+    }
+
+    /**
+     * @return array{label: string, hint: string}
+     */
+    public static function loginContext(?User $user): array
+    {
+        if ($user && ($user->user_type === User::TYPE_TENANT_ADMIN || $user->hasTenantRole(User::TYPE_TENANT_ADMIN))) {
+            return [
+                'label' => 'Área da gestão',
+                'hint' => 'Painel administrativo da câmara: cursos, alunos, presença e certificação.',
+            ];
+        }
+
+        if ($user && $user->accessesDocentePortal()) {
+            return [
+                'label' => 'Área do docente',
+                'hint' => 'Acesso para professores e equipe pedagógica cadastrados pela coordenação.',
+            ];
+        }
+
+        return [
+            'label' => 'Área do aluno',
+            'hint' => 'Cadastro e acesso seguros à área do aluno, cursos e comunicações da escola.',
+        ];
     }
 
     /**

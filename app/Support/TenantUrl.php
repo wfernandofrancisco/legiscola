@@ -20,25 +20,49 @@ class TenantUrl
         $port = parse_url($appUrl, PHP_URL_PORT);
 
         $appDomain = self::normalizeDomain((string) config('app.domain'));
-        $isLocalEnv = in_array((string) config('app.env'), ['local', 'testing'], true);
-        $isLocalHost = in_array(strtolower($host), ['localhost', '127.0.0.1', '::1', 'lvh.me'], true);
+        $isLocal = self::isLocal($host);
+
+        // Porta do artisan serve (8000) só no Laragon. Em produção nunca entra no logout/e-mail.
+        $urlPort = $isLocal ? ($port ?: 8000) : null;
 
         // Em ambiente local, sempre prioriza slug + APP_DOMAIN para evitar links em dominio de producao do tenant.
-        if ($tenant && filled($tenant->slug) && filled($appDomain) && ($isLocalEnv || $isLocalHost)) {
-            $localPort = $port ?: 8000;
-
-            return self::buildUrl($scheme, $tenant->slug . '.' . $appDomain, $localPort);
+        if ($tenant && filled($tenant->slug) && filled($appDomain) && $isLocal) {
+            return self::buildUrl($scheme, $tenant->slug.'.'.$appDomain, $urlPort);
         }
 
         if ($tenant && filled($tenant->domain)) {
-            return self::buildUrl($scheme, self::normalizeDomain((string) $tenant->domain), $port);
+            return self::buildUrl($scheme, self::normalizeDomain((string) $tenant->domain), $urlPort);
         }
 
         if ($tenant && filled($tenant->slug) && filled($appDomain)) {
-            return self::buildUrl($scheme, $tenant->slug . '.' . $appDomain, $port);
+            return self::buildUrl($scheme, $tenant->slug.'.'.$appDomain, $urlPort);
         }
 
-        return rtrim($appUrl, '/');
+        return self::appRoot();
+    }
+
+    /**
+     * Raiz do APP_URL sem porta de desenvolvimento em produção.
+     */
+    public static function appRoot(): string
+    {
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?: 'https';
+        $host = parse_url($appUrl, PHP_URL_HOST) ?: '';
+
+        if (self::isLocal($host)) {
+            return $appUrl;
+        }
+
+        return self::buildUrl($scheme, $host, null);
+    }
+
+    private static function isLocal(string $host): bool
+    {
+        $isLocalEnv = in_array((string) config('app.env'), ['local', 'testing'], true);
+        $isLocalHost = in_array(strtolower($host), ['localhost', '127.0.0.1', '::1', 'lvh.me'], true);
+
+        return $isLocalEnv || $isLocalHost;
     }
 
     public static function onTenant(?User $user, string $path): string

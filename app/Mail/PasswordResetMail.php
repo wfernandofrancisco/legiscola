@@ -31,7 +31,7 @@ class PasswordResetMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Desenvolve City] Recuperação de Senha',
+            subject: '['.config('app.name').'] Recuperação de senha',
         );
     }
 

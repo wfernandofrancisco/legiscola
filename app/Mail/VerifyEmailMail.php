@@ -28,7 +28,7 @@ class VerifyEmailMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Desenvolve City] Confirmação de E-mail',
+            subject: '['.config('app.name').'] Confirmação de e-mail',
         );
     }
 

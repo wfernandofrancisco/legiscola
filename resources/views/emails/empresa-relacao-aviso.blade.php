@@ -9,7 +9,7 @@
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #dbe5f1;border-radius:14px;overflow:hidden;">
         <tr>
             <td style="padding:28px 32px;background:linear-gradient(135deg,#0d4ea6 0%,#0a234a 100%);color:#ffffff;">
-                <div style="font-size:14px;opacity:.85;letter-spacing:.08em;text-transform:uppercase;">Desenvolve City</div>
+                <div style="font-size:14px;opacity:.85;letter-spacing:.08em;text-transform:uppercase;">{{ config('app.name') }}</div>
                 <div style="font-size:24px;font-weight:700;line-height:1.3;margin-top:10px;">Aviso de relação de empresa</div>
                 <div style="font-size:14px;line-height:1.5;opacity:.9;margin-top:8px;">Notificação automática para acompanhamento da relação.</div>
             </td>
@@ -58,7 +58,7 @@
         </tr>
         <tr>
             <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.6;color:#64748b;">
-                Desenvolve City<br>
+                {{ config('app.name') }}<br>
                 Este e-mail foi enviado automaticamente com base na data de aviso da relação.
             </td>
         </tr>

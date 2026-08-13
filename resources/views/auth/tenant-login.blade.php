@@ -90,6 +90,12 @@
                 <h2 class="font-display text-2xl font-extrabold tracking-tight text-slate-900">Entrar no painel</h2>
                 <p class="mt-1 text-sm text-slate-500">E-mail da gestão da câmara.</p>
 
+                @if (session('status'))
+                    <div class="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
+                        {{ session('status') }}
+                    </div>
+                @endif
+
                 @if ($errors->any() || session('error'))
                     <div class="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-100">
                         {{ $errors->any() ? $errors->first() : session('error') }}
