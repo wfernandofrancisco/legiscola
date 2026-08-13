@@ -1,0 +1,19 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-sCZH1Svh.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/admin-reports.js": {
+    "file": "assets/admin-reports-CG2qm5NR.js",
+    "name": "admin-reports",
+    "src": "resources/js/admin-reports.js",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-C0Efxulq.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}
