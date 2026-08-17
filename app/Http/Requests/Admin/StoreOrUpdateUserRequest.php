@@ -22,13 +22,12 @@ class StoreOrUpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $userId = $this->route('user')?->id;
-        
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . ($userId ?? 'NULL')],
             'phone' => ['nullable', 'string', 'max:20'],
             'user_type' => ['required', 'in:' . implode(',', array_keys(UserType::options()))],
-            'role' => ['required', 'in:tenant_admin,tenant_manager,tenant_user'],
             'status' => ['required', 'in:' . implode(',', array_keys(UserStatus::options()))],
         ];
     }
@@ -45,8 +44,6 @@ class StoreOrUpdateUserRequest extends FormRequest
             'email.unique' => 'Este e-mail já está registrado.',
             'user_type.required' => 'O tipo de usuário é obrigatório.',
             'user_type.in' => 'O tipo de usuário selecionado é inválido.',
-            'role.required' => 'A função/papel é obrigatória.',
-            'role.in' => 'A função/papel selecionada é inválida.',
             'status.required' => 'A situação é obrigatória.',
             'status.in' => 'A situação selecionada é inválida.',
         ];

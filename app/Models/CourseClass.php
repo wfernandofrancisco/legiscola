@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Carbon\CarbonImmutable;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,6 +24,9 @@ class CourseClass extends Model
         'max_seats',
         'enrollment_start',
         'enrollment_end',
+        'certificado_disponivel_ate',
+        'satisfaction_survey_id',
+        'satisfaction_survey_required',
         'status',
     ];
 
@@ -30,12 +35,51 @@ class CourseClass extends Model
         return [
             'enrollment_start' => 'datetime',
             'enrollment_end' => 'datetime',
+            'certificado_disponivel_ate' => 'datetime',
+            'satisfaction_survey_required' => 'boolean',
         ];
+    }
+
+    /**
+     * Aluno pode baixar o certificado desta turma até a data limite (se definida).
+     */
+    public function isCertificateAccessOpen(?DateTimeInterface $at = null): bool
+    {
+        if (! $this->certificado_disponivel_ate) {
+            return true;
+        }
+
+        $at = $at ? CarbonImmutable::instance($at) : CarbonImmutable::now();
+
+        return $at->lte($this->certificado_disponivel_ate);
+    }
+
+    public function requiresSatisfactionSurvey(): bool
+    {
+        return $this->satisfaction_survey_required && filled($this->satisfaction_survey_id);
+    }
+
+    public function studentCompletedSatisfactionSurvey(int $studentId): bool
+    {
+        if (! $this->satisfaction_survey_id) {
+            return true;
+        }
+
+        return SatisfactionSurveyResponse::query()
+            ->where('satisfaction_survey_id', $this->satisfaction_survey_id)
+            ->where('course_class_id', $this->id)
+            ->where('student_id', $studentId)
+            ->exists();
     }
 
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function satisfactionSurvey(): BelongsTo
+    {
+        return $this->belongsTo(SatisfactionSurvey::class, 'satisfaction_survey_id');
     }
 
     public function enrollments(): HasMany

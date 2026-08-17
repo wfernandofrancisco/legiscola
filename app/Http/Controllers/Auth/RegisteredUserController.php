@@ -13,7 +13,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
@@ -43,73 +42,45 @@ class RegisteredUserController extends Controller
 
         $tenantId = (int) TenantContext::getTenantId();
         $validated = $request->validated();
-
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('students', 'public');
-        }
-
-        $escolaridadeValue = $validated['escolaridade'] instanceof \BackedEnum
-            ? $validated['escolaridade']->value
-            : (string) $validated['escolaridade'];
-
         $privacyTerm = GlobalPrivacyTerm::currentPublished();
 
-        try {
-            $user = DB::transaction(function () use ($validated, $tenantId, $photoPath, $escolaridadeValue, $privacyTerm): User {
-                $email = strtolower(trim($validated['email']));
+        $user = DB::transaction(function () use ($validated, $tenantId, $privacyTerm): User {
+            $email = strtolower(trim($validated['email']));
 
-                $userAttrs = [
-                    'tenant_id' => $tenantId,
-                    'name' => $validated['name'],
-                    'email' => $email,
-                    'password' => Hash::make($validated['password']),
-                    'user_type' => User::TYPE_TENANT_USER,
-                    'status' => User::STATUS_ATIVO,
-                    'cpf' => $validated['cpf'],
-                ];
+            $userAttrs = [
+                'tenant_id' => $tenantId,
+                'name' => $validated['name'],
+                'email' => $email,
+                'password' => Hash::make($validated['password']),
+                'user_type' => User::TYPE_TENANT_USER,
+                'status' => User::STATUS_ATIVO,
+                'cpf' => $validated['cpf'],
+            ];
 
-                if ($privacyTerm !== null) {
-                    $userAttrs['accepted_global_privacy_term_version'] = $privacyTerm->version;
-                    $userAttrs['accepted_global_privacy_term_at'] = now();
-                }
-
-                $user = User::query()->create($userAttrs);
-
-                $user->assignRole(User::TYPE_TENANT_USER);
-
-                $enrollmentNumber = sprintf('WEB-%d-%d', $tenantId, $user->id);
-
-                Student::query()->create([
-                    'user_id' => $user->id,
-                    'email' => $email,
-                    'enrollment_number' => $enrollmentNumber,
-                    'birth_date' => $validated['birth_date'],
-                    'sexo' => $validated['sexo'],
-                    'cpf' => $validated['cpf'],
-                    'telefone' => $validated['telefone'] ?? null,
-                    'celular' => $validated['celular'] ?? null,
-                    'cep' => $validated['cep'] ?? null,
-                    'logradouro' => $validated['logradouro'] ?? null,
-                    'numero' => $validated['numero'] ?? null,
-                    'bairro' => $validated['bairro'] ?? null,
-                    'cidade' => $validated['cidade'] ?? null,
-                    'uf' => $validated['uf'] ?? null,
-                    'profissao' => $validated['profissao'] ?? null,
-                    'escolaridade' => $escolaridadeValue,
-                    'photo_path' => $photoPath,
-                    'status' => 'ativo',
-                ]);
-
-                return $user;
-            });
-        } catch (\Throwable $e) {
-            if ($photoPath !== null) {
-                Storage::disk('public')->delete($photoPath);
+            if ($privacyTerm !== null) {
+                $userAttrs['accepted_global_privacy_term_version'] = $privacyTerm->version;
+                $userAttrs['accepted_global_privacy_term_at'] = now();
             }
 
-            throw $e;
-        }
+            $user = User::query()->create($userAttrs);
+
+            $user->assignRole(User::TYPE_TENANT_USER);
+
+            $enrollmentNumber = sprintf('WEB-%d-%d', $tenantId, $user->id);
+
+            Student::query()->create([
+                'user_id' => $user->id,
+                'email' => $email,
+                'enrollment_number' => $enrollmentNumber,
+                'birth_date' => $validated['birth_date'],
+                'sexo' => $validated['sexo'],
+                'cpf' => $validated['cpf'],
+                'cidade' => $validated['cidade'],
+                'status' => 'ativo',
+            ]);
+
+            return $user;
+        });
 
         try {
             event(new Registered($user));

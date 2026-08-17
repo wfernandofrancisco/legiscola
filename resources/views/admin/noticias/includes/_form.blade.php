@@ -1,6 +1,7 @@
 @php
     $noticia = $noticia ?? null;
     $action = $action ?? 'create';
+    $tipoAtual = old('tipo', $noticia?->tipo ?? \App\Models\Noticia::TIPO_COMPLETA);
 @endphp
 
 <form id="noticia-form" method="POST"
@@ -29,11 +30,31 @@
     @endif
 
     <div class="space-y-5">
+        <fieldset>
+            <legend class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">Formato da publicação</legend>
+            <div class="grid gap-3 sm:grid-cols-3">
+                @foreach ([
+                    'completa' => ['Notícia completa', 'Texto, capa e galeria', 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40'],
+                    'rapida' => ['Notícia rápida', 'Título, link e capa', 'text-amber-700 bg-amber-50 dark:bg-amber-950/40'],
+                    'video' => ['Vídeo', 'Link do YouTube', 'text-red-600 bg-red-50 dark:bg-red-950/40'],
+                ] as $value => [$label, $hint, $tone])
+                    <label class="noticia-type-card relative cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md {{ $tipoAtual === $value ? 'border-indigo-500 ring-2 ring-indigo-500/15' : 'border-gray-200 dark:border-gray-700' }}">
+                        <input type="radio" name="tipo" value="{{ $value }}" class="sr-only" {{ $tipoAtual === $value ? 'checked' : '' }}>
+                        <span class="mb-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide {{ $tone }}">{{ $label }}</span>
+                        <span class="block text-xs leading-relaxed text-gray-500 dark:text-gray-400">{{ $hint }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @error('tipo')
+                <p class="mt-1 text-[11px] text-red-500">{{ $message }}</p>
+            @enderror
+        </fieldset>
+
         <x-form.input name="titulo" label="Titulo" :required="true" :value="$noticia?->titulo ?? old('titulo')" />
 
         <x-form.input name="subtitulo" label="Subtitulo" :value="$noticia?->subtitulo ?? old('subtitulo')" />
 
-        <div>
+        <div id="complete-content-fields">
             <label for="noticia_editor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Conteudo da noticia <span class="text-red-500">*</span>
             </label>
@@ -46,13 +67,25 @@
             @enderror
         </div>
 
+        <div id="quick-link-fields" class="hidden rounded-2xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-900/60 dark:bg-amber-950/20">
+            <x-form.input type="url" name="fonte_url" label="Link da notícia original" :value="$noticia?->fonte_url ?? old('fonte_url')"
+                placeholder="https://site-da-noticia.com.br/materia" />
+            <p class="mt-2 text-xs text-amber-800/80 dark:text-amber-300/80">Ao clicar no card, o visitante será levado para esta fonte em uma nova aba.</p>
+        </div>
+
+        <div id="video-link-fields" class="hidden rounded-2xl border border-red-200 bg-red-50/70 p-5 dark:border-red-900/60 dark:bg-red-950/20">
+            <x-form.input type="url" name="video_url" label="Link do vídeo no YouTube" :value="$noticia?->video_url ?? old('video_url')"
+                placeholder="https://www.youtube.com/watch?v=..." />
+            <p class="mt-2 text-xs text-red-800/80 dark:text-red-300/80">Aceita links youtube.com, youtu.be e Shorts. O vídeo será exibido dentro da página.</p>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <x-form.input type="datetime-local" name="publicar_em" label="Publicar em" :value="old('publicar_em', $noticia?->publicar_em?->format('Y-m-d\TH:i'))" />
             <x-form.input name="tags" label="Tags (separadas por virgula)" :value="$noticia?->tags ?? old('tags')" />
         </div>
 
         <div class="space-y-3">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Foto de capa</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Foto de capa <span id="cover-required" class="hidden text-red-500">*</span></label>
             @if ($action === 'edit' && $noticia?->foto_capa_url)
                 <img id="foto-capa-current" src="{{ $noticia->foto_capa_url }}" alt="Foto de capa atual"
                     class="h-36 w-full max-w-md object-cover rounded-lg border border-gray-200 dark:border-gray-700">
@@ -64,7 +97,7 @@
                 <input id="foto_capa" type="file" name="foto_capa" accept=".jpg,.jpeg,.png,.webp" class="hidden">
                 <div class="space-y-2">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Clique para escolher a capa</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">JPG, PNG ou WEBP ate 3MB</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">JPG, PNG ou WEBP ate 8MB</p>
                     <p id="foto-capa-filename" class="text-xs text-indigo-600 dark:text-indigo-400"></p>
                 </div>
             </label>
@@ -82,7 +115,7 @@
             ]" />
         </div>
 
-        <div>
+        <div id="gallery-fields">
             <label for="fotos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fotos da
                 noticia</label>
             <label for="fotos"
@@ -101,7 +134,7 @@
         </div>
 
         @if ($action === 'edit' && $noticia && $noticia->fotos->count())
-            <div class="pt-2">
+            <div id="existing-gallery-fields" class="pt-2">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Fotos atuais</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     @foreach ($noticia->fotos as $foto)
@@ -161,6 +194,37 @@
     </style>
     <script>
         (function() {
+            const typeInputs = Array.from(document.querySelectorAll('input[name="tipo"]'));
+            const completeFields = document.getElementById('complete-content-fields');
+            const quickFields = document.getElementById('quick-link-fields');
+            const videoFields = document.getElementById('video-link-fields');
+            const galleryFields = document.getElementById('gallery-fields');
+            const existingGalleryFields = document.getElementById('existing-gallery-fields');
+            const coverRequired = document.getElementById('cover-required');
+
+            function syncPublicationType() {
+                const selected = typeInputs.find((input) => input.checked)?.value || 'completa';
+
+                completeFields?.classList.toggle('hidden', selected !== 'completa');
+                quickFields?.classList.toggle('hidden', selected !== 'rapida');
+                videoFields?.classList.toggle('hidden', selected !== 'video');
+                galleryFields?.classList.toggle('hidden', selected !== 'completa');
+                existingGalleryFields?.classList.toggle('hidden', selected !== 'completa');
+                coverRequired?.classList.toggle('hidden', selected !== 'rapida');
+
+                document.querySelectorAll('.noticia-type-card').forEach((card) => {
+                    const active = card.querySelector('input')?.checked;
+                    card.classList.toggle('border-indigo-500', Boolean(active));
+                    card.classList.toggle('ring-2', Boolean(active));
+                    card.classList.toggle('ring-indigo-500/15', Boolean(active));
+                    card.classList.toggle('border-gray-200', !active);
+                    card.classList.toggle('dark:border-gray-700', !active);
+                });
+            }
+
+            typeInputs.forEach((input) => input.addEventListener('change', syncPublicationType));
+            syncPublicationType();
+
             const textarea = document.getElementById('noticia_editor');
             const container = document.getElementById('noticia_editor_container');
             const form = document.getElementById('noticia-form');

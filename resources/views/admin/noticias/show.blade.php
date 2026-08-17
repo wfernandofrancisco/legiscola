@@ -14,6 +14,10 @@
             @endif
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Formato</dt>
+                    <dd class="mt-1 text-gray-900 dark:text-white">{{ $noticia->tipo_label }}</dd>
+                </div>
+                <div>
                     <dt class="text-xs font-medium text-gray-500 uppercase">Subtitulo</dt>
                     <dd class="mt-1 text-gray-900 dark:text-white">{{ $noticia->subtitulo ?: '-' }}</dd>
                 </div>
@@ -29,15 +33,33 @@
                     <dt class="text-xs font-medium text-gray-500 uppercase">Publicar em</dt>
                     <dd class="mt-1 text-gray-900 dark:text-white">{{ $noticia->publicar_em?->format('d/m/Y H:i') ?: '-' }}</dd>
                 </div>
+                @if ($noticia->fonte_url)
+                    <div class="md:col-span-2">
+                        <dt class="text-xs font-medium text-gray-500 uppercase">Link de origem</dt>
+                        <dd class="mt-1 break-all text-indigo-600 dark:text-indigo-400">
+                            <a href="{{ $noticia->fonte_url }}" target="_blank" rel="noopener noreferrer">{{ $noticia->fonte_url }}</a>
+                        </dd>
+                    </div>
+                @endif
+                @if ($noticia->video_url)
+                    <div class="md:col-span-2">
+                        <dt class="text-xs font-medium text-gray-500 uppercase">Vídeo no YouTube</dt>
+                        <dd class="mt-1 break-all text-indigo-600 dark:text-indigo-400">
+                            <a href="{{ $noticia->video_url }}" target="_blank" rel="noopener noreferrer">{{ $noticia->video_url }}</a>
+                        </dd>
+                    </div>
+                @endif
             </dl>
         </div>
 
+        @if ($noticia->noticia)
         <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-3">Conteudo</h3>
             <div class="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line text-gray-700 dark:text-gray-300">
-                {{ $noticia->noticia }}
+                {!! $noticia->noticia !!}
             </div>
         </div>
+        @endif
 
         @if ($noticia->fotos->count())
             <div class="pt-4 border-t border-gray-200 dark:border-gray-700">

@@ -90,6 +90,7 @@ class TurmaController extends Controller
             'course',
             'teachers',
             'schedules',
+            'satisfactionSurvey',
             'lessons' => fn ($q) => $q->orderBy('date')->orderBy('start_time'),
             'announcements' => fn ($q) => $q
                 ->whereNotNull('reference_date')

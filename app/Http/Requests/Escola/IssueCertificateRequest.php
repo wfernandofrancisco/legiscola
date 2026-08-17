@@ -4,6 +4,8 @@ namespace App\Http\Requests\Escola;
 
 use App\Enums\CertificateTipoEmissao;
 use App\Models\CertificateTemplate;
+use App\Models\CourseClass;
+use App\Models\Enrollment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -39,21 +41,41 @@ class IssueCertificateRequest extends FormRequest
             }
 
             $templateId = $this->input('certificate_template_id');
-            if (! $templateId) {
+            if ($templateId) {
+                $tpl = CertificateTemplate::query()->find($templateId);
+                if ($tpl) {
+                    if ($hasEvent && $tpl->tipo_emissao !== CertificateTipoEmissao::Evento) {
+                        $v->errors()->add('certificate_template_id', 'O template precisa ser do tipo «evento» para certificado de evento.');
+                    }
+
+                    if ($hasCourse && $tpl->tipo_emissao !== CertificateTipoEmissao::Curso) {
+                        $v->errors()->add('certificate_template_id', 'O template precisa ser do tipo «curso» para certificado de turma.');
+                    }
+                }
+            }
+
+            if (! $hasCourse) {
                 return;
             }
 
-            $tpl = CertificateTemplate::query()->find($templateId);
-            if (! $tpl) {
-                return;
-            }
+            $studentId = (int) $this->input('student_id');
+            $courseId = (int) $this->input('course_id');
 
-            if ($hasEvent && $tpl->tipo_emissao !== CertificateTipoEmissao::Evento) {
-                $v->errors()->add('certificate_template_id', 'O template precisa ser do tipo «evento» para certificado de evento.');
-            }
+            $enrollment = Enrollment::query()
+                ->where('student_id', $studentId)
+                ->where('status', 'concluido')
+                ->whereHas('courseClass', fn ($q) => $q->where('course_id', $courseId))
+                ->with('courseClass')
+                ->latest('id')
+                ->first();
 
-            if ($hasCourse && $tpl->tipo_emissao !== CertificateTipoEmissao::Curso) {
-                $v->errors()->add('certificate_template_id', 'O template precisa ser do tipo «curso» para certificado de turma.');
+            /** @var CourseClass|null $turma */
+            $turma = $enrollment?->courseClass;
+            if ($turma && $turma->requiresSatisfactionSurvey() && ! $turma->studentCompletedSatisfactionSurvey($studentId)) {
+                $v->errors()->add(
+                    'student_id',
+                    'O aluno precisa responder a pesquisa de satisfação obrigatória desta turma antes da emissão do certificado.'
+                );
             }
         });
     }

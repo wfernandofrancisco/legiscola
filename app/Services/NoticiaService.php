@@ -35,6 +35,7 @@ class NoticiaService implements NoticiaServiceInterface
             $data['user_id'] = auth()->id();
             $data['slug'] = $this->generateSlug($data['titulo'] ?? '');
             $data['tags'] = $this->normalizeTags($data['tags'] ?? null);
+            $data = $this->normalizeTypeFields($data);
 
             $noticia = $this->repository->create($data);
 
@@ -53,6 +54,7 @@ class NoticiaService implements NoticiaServiceInterface
         return DB::transaction(function () use ($noticia, $data, $fotos): bool {
             $data['slug'] = $this->generateSlug($data['titulo'] ?? $noticia->titulo, $noticia->id);
             $data['tags'] = $this->normalizeTags($data['tags'] ?? null);
+            $data = $this->normalizeTypeFields($data);
 
             $updated = $this->repository->update($noticia, $data);
 
@@ -108,6 +110,22 @@ class NoticiaService implements NoticiaServiceInterface
             ->all();
 
         return $items ? implode(',', $items) : null;
+    }
+
+    private function normalizeTypeFields(array $data): array
+    {
+        $tipo = $data['tipo'] ?? Noticia::TIPO_COMPLETA;
+        $data['noticia'] = $tipo === Noticia::TIPO_COMPLETA
+            ? (string) ($data['noticia'] ?? '')
+            : '';
+        $data['fonte_url'] = $tipo === Noticia::TIPO_RAPIDA
+            ? trim((string) ($data['fonte_url'] ?? ''))
+            : null;
+        $data['video_url'] = $tipo === Noticia::TIPO_VIDEO
+            ? trim((string) ($data['video_url'] ?? ''))
+            : null;
+
+        return $data;
     }
 
     public function generateSlug(string $titulo, ?int $ignoreId = null): string

@@ -38,7 +38,9 @@ class StudentService implements StudentServiceInterface
         return DB::transaction(function () use ($data): Student {
             $email = strtolower(trim((string) $data['email']));
             $name = trim((string) ($data['name'] ?? 'Aluno'));
+            $password = (string) ($data['password'] ?? '');
             $userCreated = false;
+            $passwordProvided = $password !== '';
 
             $user = User::query()->where('email', $email)->first();
             if (! $user) {
@@ -46,9 +48,10 @@ class StudentService implements StudentServiceInterface
                     'tenant_id' => auth()->user()->tenant_id,
                     'name' => $name,
                     'email' => $email,
-                    'password' => Hash::make(Str::random(12)),
+                    'password' => Hash::make($passwordProvided ? $password : Str::random(12)),
                     'user_type' => User::TYPE_TENANT_USER,
                     'status' => User::STATUS_ATIVO,
+                    'cpf' => $data['cpf'] ?? null,
                 ]);
                 $user->assignRole('tenant_user');
                 $userCreated = true;
@@ -63,13 +66,17 @@ class StudentService implements StudentServiceInterface
 
             $data['user_id'] = $user->id;
             $data['email'] = $email;
-            unset($data['name']);
+            $data['status'] = $data['status'] ?? 'ativo';
+            if (empty($data['enrollment_number'])) {
+                $data['enrollment_number'] = sprintf('ADM-%d-%d', (int) $user->tenant_id, $user->id);
+            }
+            unset($data['name'], $data['password'], $data['password_confirmation']);
 
             $data = $this->mergeGeocoding(null, $data);
 
             $student = $this->repository->create($data);
 
-            if ($userCreated) {
+            if ($userCreated && ! $passwordProvided) {
                 DB::afterCommit(function () use ($user): void {
                     $token = Password::createToken($user);
                     $user->sendPasswordResetNotification($token);
@@ -85,13 +92,21 @@ class StudentService implements StudentServiceInterface
         return DB::transaction(function () use ($student, $data): bool {
             $email = strtolower(trim((string) $data['email']));
             $name = trim((string) ($data['name'] ?? $student->user?->name ?? 'Aluno'));
+            $password = (string) ($data['password'] ?? '');
             $data['email'] = $email;
-            unset($data['name']);
+            unset($data['name'], $data['password'], $data['password_confirmation']);
 
-            $student->user?->update([
+            $userUpdate = [
                 'name' => $name,
                 'email' => $email,
-            ]);
+            ];
+            if ($password !== '') {
+                $userUpdate['password'] = Hash::make($password);
+            }
+            if (array_key_exists('cpf', $data)) {
+                $userUpdate['cpf'] = $data['cpf'];
+            }
+            $student->user?->update($userUpdate);
 
             $data = $this->mergeGeocoding($student, $data);
 

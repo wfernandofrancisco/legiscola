@@ -137,6 +137,8 @@ class CertificateTemplateController extends Controller
 
         $replacements = [
             '{{aluno_nome}}' => 'ALUNO TESTE DA SILVA',
+            '{{palestrante_nome}}' => 'PALESTRANTE TESTE',
+            '{{palestrante_cpf}}' => '000.000.000-00',
             '{{curso_nome}}' => 'Curso de Formação Cidadã',
             '{{evento_nome}}' => 'Seminário de Participação Popular',
             '{{carga_horaria}}' => '40 horas',
@@ -147,6 +149,8 @@ class CertificateTemplateController extends Controller
             '{{tenant_nome}}' => $tenantName !== '' ? $tenantName : 'Câmara de Vereadores',
             '{{escola_legislativa}}' => $tenantSchoolName,
             '@{{aluno_nome}}' => 'ALUNO TESTE DA SILVA',
+            '@{{palestrante_nome}}' => 'PALESTRANTE TESTE',
+            '@{{palestrante_cpf}}' => '000.000.000-00',
             '@{{curso_nome}}' => 'Curso de Formação Cidadã',
             '@{{evento_nome}}' => 'Seminário de Participação Popular',
             '@{{carga_horaria}}' => '40 horas',

@@ -32,6 +32,24 @@
         <x-form.input name="max_seats" label="Vagas" type="number" :value="$courseClass?->max_seats ?? old('max_seats')" />
         <x-form.input name="enrollment_start" label="Início inscrição" type="datetime-local" :value="old('enrollment_start', optional($courseClass?->enrollment_start)->format('Y-m-d\TH:i'))" />
         <x-form.input name="enrollment_end" label="Fim inscrição" type="datetime-local" :value="old('enrollment_end', optional($courseClass?->enrollment_end)->format('Y-m-d\TH:i'))" />
+        <x-form.input name="certificado_disponivel_ate" label="Data limite para emissão do certificado" type="datetime-local"
+            :value="old('certificado_disponivel_ate', optional($courseClass?->certificado_disponivel_ate)->format('Y-m-d\TH:i'))"
+            hint="Até esta data o aluno pode acessar e baixar o certificado desta turma. Deixe em branco para manter disponível sem prazo." />
+        @php
+            $satisfactionSurveys = $satisfactionSurveys ?? collect();
+            $surveyOptions = ['' => 'Nenhuma'] + $satisfactionSurveys->mapWithKeys(
+                fn ($s) => [(string) $s->id => $s->title]
+            )->all();
+        @endphp
+        <x-form.select name="satisfaction_survey_id" label="Pesquisa de satisfação"
+            :options="$surveyOptions"
+            :selected="old('satisfaction_survey_id', $courseClass?->satisfaction_survey_id)"
+            hint="Selecione uma pesquisa ativa para vincular a esta turma." />
+        <div class="md:col-span-3">
+            <x-form.checkbox name="satisfaction_survey_required" label="Obrigar o aluno a responder a pesquisa antes de emitir o certificado"
+                :checked="(bool) ($courseClass?->satisfaction_survey_required ?? false)"
+                hint="Só vale se houver uma pesquisa selecionada acima." />
+        </div>
         <x-form.select name="status" label="Status" :options="[
             'cadastrado' => 'Cadastrado',
             'inscricao' => 'Inscrição',

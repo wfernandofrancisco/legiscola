@@ -2,7 +2,6 @@
     $user = $user ?? null;
     $action = $action ?? 'create';
     $userTypes = $userTypes ?? \App\Enums\UserType::options();
-    $roles = $roles ?? \App\Services\RoleService::getTenantRoles();
     $statuses = $statuses ?? \App\Enums\UserStatus::options();
 @endphp
 
@@ -44,7 +43,6 @@
                 
                 <x-form.input name="phone" label="Telefone" :value="$user?->phone ?? old('phone')" data-mask="phone" />
                 <x-form.select name="user_type" label="Tipo de Usuário" :required="true" :selected="$user?->user_type ?? old('user_type', 'tenant_user')" :options="$userTypes" />
-                <x-form.select name="role" label="Função/Papel" :required="true" :selected="$user?->roles->first()?->name ?? old('role', 'tenant_user')" :options="$roles" />
                 <x-form.select name="status" label="Situação" :required="true" :selected="$user?->status ?? old('status', 'ativo')" :options="$statuses" />
             </div>
         </fieldset>

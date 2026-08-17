@@ -77,10 +77,9 @@ class UserController extends Controller
         ];
 
         $userTypes = \App\Enums\UserType::options();
-        $roles = \App\Services\RoleService::getTenantRoles();
         $statuses = \App\Enums\UserStatus::options();
 
-        return view('admin.users.create', compact('breadcrumbs', 'userTypes', 'roles', 'statuses'));
+        return view('admin.users.create', compact('breadcrumbs', 'userTypes', 'statuses'));
     }
 
     /**
@@ -113,10 +112,9 @@ class UserController extends Controller
         ];
 
         $userTypes = \App\Enums\UserType::options();
-        $roles = \App\Services\RoleService::getTenantRoles();
         $statuses = \App\Enums\UserStatus::options();
 
-        return view('admin.users.edit', compact('user', 'breadcrumbs', 'userTypes', 'roles', 'statuses'));
+        return view('admin.users.edit', compact('user', 'breadcrumbs', 'userTypes', 'statuses'));
     }
 
     /**

@@ -10,7 +10,6 @@ use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class StudentController extends Controller
@@ -65,30 +64,15 @@ class StudentController extends Controller
 
     public function store(StoreStudentRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        unset($data['photo']);
+        $this->service->create($request->validated());
 
-        if ($request->hasFile('photo')) {
-            $data['photo_path'] = $request->file('photo')->store('students', 'public');
-        }
-
-        $this->service->create($data);
         return back()->with('success', 'Aluno cadastrado com sucesso.');
     }
 
     public function update(UpdateStudentRequest $request, Student $student): RedirectResponse
     {
-        $data = $request->validated();
-        unset($data['photo']);
+        $this->service->update($student, $request->validated());
 
-        if ($request->hasFile('photo')) {
-            if ($student->photo_path) {
-                Storage::disk('public')->delete($student->photo_path);
-            }
-            $data['photo_path'] = $request->file('photo')->store('students', 'public');
-        }
-
-        $this->service->update($student, $data);
         return back()->with('success', 'Aluno atualizado com sucesso.');
     }
 

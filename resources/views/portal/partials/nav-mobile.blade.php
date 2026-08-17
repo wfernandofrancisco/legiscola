@@ -7,6 +7,7 @@
     <a href="{{ route('portal.professores.index') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Equipe</a>
     <a href="{{ route('portal.cursos.historico') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Histórico de turmas</a>
     <a href="{{ route('portal.sobre') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Institucional</a>
+    <a href="{{ route('portal.tutorial') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Tutorial</a>
     <a href="{{ route('portal.contato') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Contato</a>
     <a href="{{ route('portal.certificados.validar') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Validar certificado</a>
     <hr class="my-2 border-slate-200 dark:border-slate-700"/>

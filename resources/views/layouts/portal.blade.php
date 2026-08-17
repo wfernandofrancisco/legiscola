@@ -315,6 +315,7 @@
                         <li><a href="{{ route('portal.cursos.index') }}" class="hover:text-white">Turmas</a></li>
                         <li><a href="{{ route('portal.professores.index') }}" class="hover:text-white">Professores</a></li>
                         <li><a href="{{ route('portal.sobre') }}" class="hover:text-white">Institucional</a></li>
+                        <li><a href="{{ route('portal.tutorial') }}" class="hover:text-white">Tutorial do portal</a></li>
                     </ul>
                 </div>
                 <div>

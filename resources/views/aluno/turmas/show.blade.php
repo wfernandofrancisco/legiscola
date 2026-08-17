@@ -43,6 +43,24 @@
         </div>
     </header>
 
+    @if ($courseClass->satisfaction_survey_id && $courseClass->satisfactionSurvey?->is_active)
+        <section class="mb-10">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Pesquisa de satisfação</h2>
+            <div class="mt-4 flex flex-col justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:flex-row sm:items-center">
+                <div class="min-w-0">
+                    <p class="font-semibold text-white">{{ $courseClass->satisfactionSurvey->title }}</p>
+                    @if ($courseClass->satisfaction_survey_required)
+                        <p class="mt-1 text-xs text-amber-300/90">Obrigatória para emissão do certificado</p>
+                    @endif
+                </div>
+                <a href="{{ route('app.pesquisas-satisfacao.show', $courseClass) }}"
+                   class="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-cyan-500/15 hover:brightness-110">
+                    Responder
+                </a>
+            </div>
+        </section>
+    @endif
+
     @if ($courseClass->linkedQuizzes->isNotEmpty())
         <section class="mb-10">
             <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Quizzes desta turma</h2>

@@ -10,6 +10,7 @@
     ['label' => 'Turmas', 'href' => route('portal.cursos.index'), 'active' => $routeIsPatterns(['portal.cursos.*'])],
     ['label' => 'Equipe', 'href' => route('portal.professores.index'), 'active' => $routeIsPatterns(['portal.professores.*'])],
     ['label' => 'Institucional', 'href' => route('portal.sobre'), 'active' => request()->routeIs('portal.sobre')],
+    ['label' => 'Tutorial', 'href' => route('portal.tutorial'), 'active' => request()->routeIs('portal.tutorial')],
     ['label' => 'Contato', 'href' => route('portal.contato'), 'active' => request()->routeIs('portal.contato', 'portal.contato.store')],
     ['label' => 'Validar certificado', 'href' => route('portal.certificados.validar'), 'active' => $routeIsPatterns(['portal.certificados.validar', 'portal.certificados.validar.consultar'])],
 ] as $item)

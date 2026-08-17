@@ -18,10 +18,7 @@
             <x-form.input name="name" label="Nome" :required="true" :value="$certificateTemplate?->name ?? old('name')" />
             <x-form.select name="tipo_emissao" label="Tipo de emissão" :required="true"
                 :selected="old('tipo_emissao', $certificateTemplate?->tipo_emissao?->value ?? 'curso')"
-                :options="[
-                    'curso' => 'Curso (turmas / conclusão de curso)',
-                    'evento' => 'Evento',
-                ]" />
+                :options="\App\Enums\CertificateTipoEmissao::options()" />
             <x-form.select name="engine" label="Engine" :required="true" :selected="$certificateTemplate?->engine ?? old('engine', 'blade')" :options="[
                 'blade' => 'Blade',
                 'html' => 'HTML',
@@ -50,7 +47,7 @@
                     placeholder="Use placeholders: @{{aluno_nome}}, @{{curso_nome}}, @{{evento_nome}}, …">{{ $certificateTemplate?->html_template ?? old('html_template') }}</textarea>
                 <div class="mt-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">
                     <p class="font-semibold mb-1">Dicas de placeholders</p>
-                    <p><strong>Tipo curso:</strong> <code>@{{curso_nome}}</code>, <code>@{{carga_horaria}}</code>, <code>@{{data_conclusao}}</code>, etc. <strong>Tipo evento:</strong> use <code>@{{evento_nome}}</code> para o título do evento (e texto do tipo «participou do evento…»); <code>@{{curso_nome}}</code> também recebe o título do evento por compatibilidade, mas o texto «curso» no HTML deve ser trocado por «evento» no template de evento.</p>
+                    <p><strong>Tipo curso:</strong> <code>@{{curso_nome}}</code>, <code>@{{carga_horaria}}</code>, <code>@{{data_conclusao}}</code>, etc. <strong>Tipo evento:</strong> use <code>@{{evento_nome}}</code> e <code>@{{aluno_nome}}</code> para o participante. <strong>Tipo palestrante:</strong> use <code>@{{palestrante_nome}}</code> (ou <code>@{{aluno_nome}}</code>), <code>@{{evento_nome}}</code> e opcionalmente <code>@{{palestrante_cpf}}</code>.</p>
                     <p class="mt-1">Comuns: <code>@{{aluno_nome}}</code>, <code>@{{cidade}}</code>, <code>@{{uf}}</code>, <code>@{{tenant_nome}}</code>, <code>@{{escola_legislativa}}</code>, <code>@{{hash_validacao}}</code>. No <strong>Testar Template</strong> o PDF usa dados fictícios.</p>
                 </div>
             </div>

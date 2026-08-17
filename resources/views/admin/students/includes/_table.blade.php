@@ -4,11 +4,8 @@
             <tr>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Aluno</th>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">E-mail</th>
-                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Matrícula</th>
-                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Profissão</th>
-                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Escolaridade</th>
-                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Contato</th>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">CPF</th>
+                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Cidade</th>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Status</th>
                 <th class="px-6 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">Ações</th>
             </tr>
@@ -17,27 +14,14 @@
             @forelse($students as $student)
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            @if($student->photo_path)
-                                <img src="{{ asset('storage/'.$student->photo_path) }}" alt="Foto do aluno"
-                                    class="w-9 h-9 rounded-lg object-cover shrink-0">
-                            @else
-                                <div class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-semibold">
-                                    {{ strtoupper(substr($student->user?->name ?? 'A', 0, 1)) }}
-                                </div>
-                            @endif
-                            <div class="min-w-0">
-                                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ $student->user?->name }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $student->user?->email }}</p>
-                            </div>
+                        <div class="min-w-0">
+                            <p class="font-semibold text-gray-900 dark:text-white truncate">{{ $student->user?->name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $student->enrollment_number }}</p>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->email }}</td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->enrollment_number }}</td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->profissao ?: '—' }}</td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->escolaridade?->label() ?? '—' }}</td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->celular ?: $student->telefone ?: '—' }}</td>
                     <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->cpf ?: '—' }}</td>
+                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $student->cidade ?: '—' }}</td>
                     <td class="px-6 py-4">
                         <x-badge :color="($student->status ?? 'ativo') === 'ativo' ? 'green' : 'gray'" :text="($student->status ?? 'ativo') === 'ativo' ? 'Ativo' : 'Inativo'" />
                     </td>
@@ -67,7 +51,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">Nenhum aluno
+                    <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">Nenhum aluno
                         encontrado.</td>
                 </tr>
             @endforelse

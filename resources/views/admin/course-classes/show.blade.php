@@ -281,6 +281,8 @@
                                             class="inline-flex rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Salvar</button>
                                         @php
                                             $latestCertificateHash = $latestCertificateHashByStudent[$enrollment->student_id] ?? null;
+                                            $surveyOk = ! $turma->requiresSatisfactionSurvey()
+                                                || ! empty(($surveyCompletedByStudent ?? [])[(int) $enrollment->student_id]);
                                         @endphp
                                         @if ($enrollment->status === 'concluido')
                                             @if ($latestCertificateHash)
@@ -288,6 +290,12 @@
                                                     class="inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
                                                     Baixar certificado
                                                 </a>
+                                            @elseif (! $surveyOk)
+                                                <span
+                                                    class="inline-flex cursor-not-allowed rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                                    title="O aluno ainda não respondeu a pesquisa de satisfação obrigatória.">
+                                                    Pesquisa pendente
+                                                </span>
                                             @elseif ($activeCertificateTemplate)
                                                 <button type="submit" form="issue-certificate-{{ $enrollment->id }}"
                                                     formtarget="_blank"
@@ -303,7 +311,7 @@
                                             @endif
                                         @endif
                                     </form>
-                                    @if ($enrollment->status === 'concluido' && ! $latestCertificateHash && $activeCertificateTemplate)
+                                    @if ($enrollment->status === 'concluido' && ! $latestCertificateHash && $activeCertificateTemplate && $surveyOk)
                                         <form method="POST" action="{{ route('admin.escola.certificados.issue') }}"
                                             id="issue-certificate-{{ $enrollment->id }}" class="hidden">
                                             @csrf

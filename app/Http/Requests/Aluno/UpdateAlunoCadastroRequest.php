@@ -3,14 +3,28 @@
 namespace App\Http\Requests\Aluno;
 
 use App\Models\Student;
+use App\Rules\CpfRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateAlunoCadastroRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return Student::query()->where('user_id', $this->user()->id)->exists();
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $digits = static fn (?string $v): string => preg_replace('/\D/', '', (string) $v);
+
+        $this->merge([
+            'email' => strtolower(trim((string) $this->input('email', ''))),
+            'cpf' => $digits($this->input('cpf')),
+            'cidade' => trim((string) $this->input('cidade', '')),
+            'name' => trim((string) $this->input('name', '')),
+        ]);
     }
 
     /**
@@ -24,6 +38,7 @@ class UpdateAlunoCadastroRequest extends FormRequest
         $studentId = $student?->id ?? 0;
 
         return [
+            'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -33,16 +48,33 @@ class UpdateAlunoCadastroRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($userId),
                 Rule::unique('students', 'email')->ignore($studentId),
             ],
-            'sexo' => ['nullable', 'string', 'max:20', Rule::in(['masculino', 'feminino', 'outro', 'nao_informado'])],
-            'celular' => ['nullable', 'string', 'max:32'],
-            'telefone' => ['nullable', 'string', 'max:32'],
-            'cep' => ['nullable', 'string', 'max:12'],
-            'logradouro' => ['nullable', 'string', 'max:255'],
-            'numero' => ['nullable', 'string', 'max:32'],
-            'bairro' => ['nullable', 'string', 'max:120'],
-            'cidade' => ['nullable', 'string', 'max:120'],
-            'uf' => ['nullable', 'string', 'max:2'],
-            'photo' => ['nullable', 'image', 'max:4096'],
+            'cpf' => [
+                'required',
+                'string',
+                'size:11',
+                new CpfRule,
+                Rule::unique('students', 'cpf')->ignore($studentId),
+            ],
+            'birth_date' => ['required', 'date', 'before:today'],
+            'sexo' => ['required', 'in:masculino,feminino,outro,nao_informado'],
+            'cidade' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nome completo',
+            'email' => 'e-mail',
+            'cpf' => 'CPF',
+            'birth_date' => 'data de nascimento',
+            'sexo' => 'sexo',
+            'cidade' => 'cidade',
+            'password' => 'senha',
         ];
     }
 }

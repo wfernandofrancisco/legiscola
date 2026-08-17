@@ -78,6 +78,11 @@
                                         Salvar
                                     </button>
                                 </form>
+                                @if ($row->checkin_em)
+                                    <p class="mt-1 text-[10px] text-emerald-700 dark:text-emerald-400">
+                                        GPS {{ $row->checkin_em->format('d/m H:i') }}
+                                    </p>
+                                @endif
                             </td>
                             <td class="px-4 py-2 text-right">
                                 @if ($isPresente && $latestHash)

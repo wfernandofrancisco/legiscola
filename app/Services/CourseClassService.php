@@ -32,6 +32,11 @@ class CourseClassService implements CourseClassServiceInterface
             $teacherIds = $this->normalizeTeacherIds($data['teacher_ids'] ?? []);
             unset($data['teacher_ids']);
             $data['tenant_id'] = TenantContext::getTenantId();
+            $data['satisfaction_survey_id'] = $data['satisfaction_survey_id'] ?? null;
+            $data['satisfaction_survey_required'] = (bool) ($data['satisfaction_survey_required'] ?? false);
+            if (! $data['satisfaction_survey_id']) {
+                $data['satisfaction_survey_required'] = false;
+            }
 
             $courseClass = $this->courseClassRepository->create($data);
             $this->syncSchedules($courseClass, $schedules);
@@ -51,6 +56,11 @@ class CourseClassService implements CourseClassServiceInterface
             unset($data['schedules'], $data['course_search']);
             $teacherIds = $this->normalizeTeacherIds($data['teacher_ids'] ?? []);
             unset($data['teacher_ids']);
+            $data['satisfaction_survey_id'] = $data['satisfaction_survey_id'] ?? null;
+            $data['satisfaction_survey_required'] = (bool) ($data['satisfaction_survey_required'] ?? false);
+            if (! $data['satisfaction_survey_id']) {
+                $data['satisfaction_survey_required'] = false;
+            }
             $updated = $this->courseClassRepository->update($courseClass, $data);
             $this->syncSchedules($courseClass, $schedules);
             $this->syncTeachers($courseClass, $teacherIds);

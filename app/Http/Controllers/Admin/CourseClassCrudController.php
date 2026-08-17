@@ -22,6 +22,7 @@ use App\Models\CourseClassAnnouncement;
 use App\Models\Teacher;
 use App\Models\Enrollment;
 use App\Models\Student;
+use App\Models\SatisfactionSurvey;
 use App\Models\TenantAdminSetting;
 use App\Support\CourseClassAttendance;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -66,8 +67,12 @@ class CourseClassCrudController extends Controller
         ];
 
         $teachers = Teacher::query()->where('status', 'ativo')->orderBy('full_name')->orderBy('email')->get();
+        $satisfactionSurveys = SatisfactionSurvey::query()
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->get(['id', 'title']);
 
-        return view('admin.course-classes.create', compact('breadcrumbs', 'teachers'));
+        return view('admin.course-classes.create', compact('breadcrumbs', 'teachers', 'satisfactionSurveys'));
     }
 
     public function store(StoreCourseClassRequest $request): RedirectResponse
@@ -84,13 +89,22 @@ class CourseClassCrudController extends Controller
             'teachers',
         ]);
         $teachers = Teacher::query()->where('status', 'ativo')->orderBy('full_name')->orderBy('email')->get();
+        $satisfactionSurveys = SatisfactionSurvey::query()
+            ->where(function ($q) use ($turma): void {
+                $q->where('is_active', true);
+                if ($turma->satisfaction_survey_id) {
+                    $q->orWhere('id', $turma->satisfaction_survey_id);
+                }
+            })
+            ->orderBy('title')
+            ->get(['id', 'title']);
         $breadcrumbs = [
             ['label' => 'Painel', 'href' => route('admin.dashboard')],
             ['label' => 'Turmas', 'href' => route('admin.turmas.index')],
             ['label' => 'Editar: '.$turma->name],
         ];
 
-        return view('admin.course-classes.edit', compact('courseClass', 'breadcrumbs', 'teachers'));
+        return view('admin.course-classes.edit', compact('courseClass', 'breadcrumbs', 'teachers', 'satisfactionSurveys'));
     }
 
     public function show(Request $request, CourseClass $turma): View
@@ -150,6 +164,17 @@ class CourseClassCrudController extends Controller
             ->limit(10)
             ->get();
 
+        $surveyCompletedByStudent = [];
+        if ($turma->requiresSatisfactionSurvey() && $studentIdsOnPage->isNotEmpty()) {
+            $surveyCompletedByStudent = \App\Models\SatisfactionSurveyResponse::query()
+                ->where('satisfaction_survey_id', $turma->satisfaction_survey_id)
+                ->where('course_class_id', $turma->id)
+                ->whereIn('student_id', $studentIdsOnPage)
+                ->pluck('student_id')
+                ->mapWithKeys(fn ($id) => [(int) $id => true])
+                ->all();
+        }
+
         return view('admin.course-classes.show', compact(
             'turma',
             'summary',
@@ -159,7 +184,8 @@ class CourseClassCrudController extends Controller
             'attendancePercentageByStudent',
             'latestCertificateHashByStudent',
             'activeCertificateTemplate',
-            'recentAnnouncements'
+            'recentAnnouncements',
+            'surveyCompletedByStudent'
         ));
     }
 

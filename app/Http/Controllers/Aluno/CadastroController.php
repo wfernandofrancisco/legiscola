@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Aluno\UpdateAlunoCadastroRequest;
 use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View as IlluminateView;
 
 class CadastroController extends Controller
@@ -38,25 +38,28 @@ class CadastroController extends Controller
         }
 
         $data = $request->validated();
-        unset($data['photo']);
-
-        if ($request->hasFile('photo')) {
-            if ($student->photo_path) {
-                Storage::disk('public')->delete($student->photo_path);
-            }
-            $data['photo_path'] = $request->file('photo')->store('students', 'public');
-        }
+        $password = (string) ($data['password'] ?? '');
+        unset($data['password'], $data['password_confirmation'], $data['name']);
 
         $student->update($data);
 
         $user = $request->user();
+        $userUpdate = [
+            'name' => $request->validated('name'),
+            'cpf' => $data['cpf'],
+        ];
+
         $newEmail = (string) $data['email'];
         if ($user->email !== $newEmail) {
-            $user->forceFill([
-                'email' => $newEmail,
-                'email_verified_at' => null,
-            ])->save();
+            $userUpdate['email'] = $newEmail;
+            $userUpdate['email_verified_at'] = null;
         }
+
+        if ($password !== '') {
+            $userUpdate['password'] = Hash::make($password);
+        }
+
+        $user->forceFill($userUpdate)->save();
 
         return redirect()->route('app.cadastro.edit')
             ->with('success', 'Dados atualizados com sucesso.');

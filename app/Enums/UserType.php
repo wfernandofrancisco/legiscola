@@ -13,7 +13,7 @@ enum UserType: string
     {
         return match ($this) {
             self::TENANT_ADMIN => 'Administrador',
-            self::TENANT_MANAGER => 'Professor',
+            self::TENANT_MANAGER => 'Gerente',
             self::TENANT_RESPONSIBLE => 'Docente',
             self::TENANT_USER => 'Aluno',
         };
@@ -26,6 +26,17 @@ enum UserType: string
             self::TENANT_MANAGER => 'yellow',
             self::TENANT_RESPONSIBLE => 'teal',
             self::TENANT_USER => 'purple',
+        };
+    }
+
+    /**
+     * Role Spatie correspondente ao tipo (docente usa tenant_professor).
+     */
+    public function roleName(): string
+    {
+        return match ($this) {
+            self::TENANT_RESPONSIBLE => 'tenant_professor',
+            default => $this->value,
         };
     }
 

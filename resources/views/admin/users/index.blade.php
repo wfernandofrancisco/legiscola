@@ -57,9 +57,10 @@
 
                 <div class="lg:col-span-1">
                     <x-form.select label="Tipo" name="user_type" placeholder="Todos os tipos" :options="[
-                        'tenant_admin' => 'Admin',
+                        'tenant_admin' => 'Administrador',
                         'tenant_manager' => 'Gerente',
-                        'tenant_user' => 'Usuário',
+                        'tenant_responsible' => 'Docente',
+                        'tenant_user' => 'Aluno',
                     ]"
                         :selected="request('user_type')" />
                 </div>

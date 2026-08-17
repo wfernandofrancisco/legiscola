@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ClassLessonController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\CourseClassController;
 use App\Http\Controllers\Admin\QuizController;
+use App\Http\Controllers\Admin\SatisfactionSurveyController;
 use App\Http\Controllers\Admin\ProfessorCredenciamentoController;
 use App\Http\Controllers\Admin\SobreEscolaController;
 use App\Http\Controllers\Admin\StudentController;
@@ -106,6 +107,8 @@ Route::prefix('admin')
         Route::patch('quizzes/{quiz}/turmas/{courseClass}/status', [QuizController::class, 'toggleClassStatus'])->name('quizzes.turmas.status');
         Route::get('quizzes/{quiz}/imprimir', [QuizController::class, 'print'])->name('quizzes.print');
         Route::redirect('escola/quizzes/gestao', 'quizzes', 301);
+        Route::resource('pesquisas-satisfacao', SatisfactionSurveyController::class)
+            ->parameters(['pesquisas-satisfacao' => 'survey']);
         Route::get('provas/construtor', ConstrutorProvas::class)->name('provas.construtor');
         Route::get('provas/{prova}/imprimir', [ProvaController::class, 'imprimir'])->name('provas.imprimir');
     });

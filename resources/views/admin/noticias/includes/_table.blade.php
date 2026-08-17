@@ -3,6 +3,7 @@
         <thead class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
             <tr>
                 <th class="px-6 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 rounded-tl-lg">Titulo</th>
+                <th class="px-6 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Formato</th>
                 <th class="px-6 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Publicar em</th>
                 <th class="px-6 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">Status</th>
                 <th class="px-6 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">Fotos</th>
@@ -17,6 +18,12 @@
                         @if ($noticia->subtitulo)
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ Str::limit($noticia->subtitulo, 70) }}</p>
                         @endif
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold
+                            {{ $noticia->tipo === 'rapida' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : ($noticia->tipo === 'video' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300') }}">
+                            {{ $noticia->tipo_label }}
+                        </span>
                     </td>
                     <td class="px-6 py-4">
                         <span class="text-gray-600 dark:text-gray-400 text-xs">
@@ -69,7 +76,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="px-6 py-12 text-center">
+                    <td colspan="6" class="px-6 py-12 text-center">
                         <p class="text-gray-600 dark:text-gray-400 font-medium mb-1">Nenhuma noticia encontrada</p>
                         <p class="text-sm text-gray-500 dark:text-gray-500 mb-4">Crie a primeira publicacao para este tenant</p>
                         <a href="{{ route('admin.noticias.create') }}"

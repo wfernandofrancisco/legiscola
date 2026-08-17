@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Contracts\Services\UserServiceInterface;
+use App\Enums\UserType;
 use App\Jobs\SendEmailSmtpJob;
 use App\Mail\PasswordResetMail;
 use App\Mail\WelcomeMail;
@@ -38,12 +39,11 @@ class UserService implements UserServiceInterface
             $data['password'] = Hash::make($data['password']);
         }
 
-        $role = $data['role'] ?? $data['user_type'] ?? User::TYPE_CLIENTE;
         unset($data['role']);
 
         /** @var User $user */
         $user = $this->userRepository->create($data);
-        $user->assignRole($role);
+        $this->syncRoleFromUserType($user, (string) ($user->user_type ?? User::TYPE_TENANT_USER));
 
         dispatch(new SendEmailSmtpJob(new WelcomeMail($user), $user->email, $user->name));
 
@@ -55,29 +55,24 @@ class UserService implements UserServiceInterface
      */
     public function createUserAsAdmin(int $tenantId, array $data): User
     {
-        // Gerar senha temporária
         $temporaryPassword = Str::random(12);
+        $userType = (string) ($data['user_type'] ?? User::TYPE_TENANT_USER);
 
-        // Preparar dados
         $userData = [
             'tenant_id' => $tenantId,
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'password' => Hash::make($temporaryPassword),
-            'user_type' => $data['user_type'] ?? 'tenant_user',
+            'user_type' => $userType,
             'status' => $data['status'] ?? 'ativo',
             'email_verified_at' => now(),
         ];
 
         /** @var User $user */
         $user = $this->userRepository->create($userData);
+        $this->syncRoleFromUserType($user, $userType);
 
-        // Atribuir role
-        $role = $data['role'] ?? 'tenant_user';
-        $user->assignRole($role);
-
-        // Enviar email com senha temporária
         Mail::to($user->email)->send(new PasswordResetMail($user, $temporaryPassword));
 
         return $user;
@@ -89,13 +84,14 @@ class UserService implements UserServiceInterface
             $data['password'] = Hash::make($data['password']);
         }
 
+        unset($data['role']);
+
         $this->userRepository->update($id, $data);
 
         $user = $this->userRepository->findOrFail($id);
 
-        // Sincronizar role se fornecida
-        if (isset($data['role'])) {
-            $user->syncRoles([$data['role']]);
+        if (isset($data['user_type'])) {
+            $this->syncRoleFromUserType($user, (string) $data['user_type']);
         }
 
         return $user;
@@ -120,6 +116,12 @@ class UserService implements UserServiceInterface
     {
         $user = $this->userRepository->findOrFail($id);
         $user->update(['user_type' => $type]);
-        $user->syncRoles([$type]);
+        $this->syncRoleFromUserType($user, $type);
+    }
+
+    private function syncRoleFromUserType(User $user, string $userType): void
+    {
+        $role = UserType::tryFrom($userType)?->roleName() ?? $userType;
+        $user->syncRoles([$role]);
     }
 }

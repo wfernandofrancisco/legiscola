@@ -4,6 +4,8 @@ use App\Http\Controllers\Aluno\AulaController;
 use App\Http\Controllers\Aluno\CadastroController;
 use App\Http\Controllers\Aluno\CertificadoController;
 use App\Http\Controllers\Aluno\DashboardController;
+use App\Http\Controllers\Aluno\EventoController;
+use App\Http\Controllers\Aluno\PesquisaSatisfacaoController;
 use App\Http\Controllers\Aluno\SenhaController;
 use App\Http\Controllers\Aluno\TurmaController;
 use App\Http\Controllers\App\ProfileController;
@@ -38,6 +40,12 @@ Route::prefix('aluno')
         Route::post('aulas/{classLesson}/presenca', [AulaController::class, 'storePresence'])->name('aulas.presenca');
         Route::get('certificados', [CertificadoController::class, 'index'])->name('certificados.index');
         Route::get('certificados/{certificate}/baixar', [CertificadoController::class, 'download'])->name('certificados.baixar');
+        Route::get('eventos', [EventoController::class, 'index'])->name('eventos.index');
+        Route::get('eventos/{evento}', [EventoController::class, 'show'])->name('eventos.show');
+        Route::post('eventos/{evento}/presenca', [EventoController::class, 'storePresence'])->name('eventos.presenca');
+        Route::get('pesquisas-satisfacao', [PesquisaSatisfacaoController::class, 'index'])->name('pesquisas-satisfacao.index');
+        Route::get('pesquisas-satisfacao/turma/{turma}', [PesquisaSatisfacaoController::class, 'show'])->name('pesquisas-satisfacao.show');
+        Route::post('pesquisas-satisfacao/turma/{turma}', [PesquisaSatisfacaoController::class, 'store'])->name('pesquisas-satisfacao.store');
 
         Route::get('perfil', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('perfil', [ProfileController::class, 'update'])->name('profile.update');

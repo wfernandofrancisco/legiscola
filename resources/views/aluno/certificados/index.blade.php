@@ -30,6 +30,8 @@
                     $subtitle = $isEvent
                         ? 'Certificado de participação no evento'
                         : 'Certificado de conclusão de curso';
+                    $accessOpen = (bool) ($certificate->access_open ?? true);
+                    $accessDeadline = $certificate->access_deadline ?? null;
                 @endphp
                 <li class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-800/90 bg-slate-900/50 shadow-lg shadow-black/20 transition hover:border-cyan-500/35 hover:bg-slate-900/80">
                     <div class="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-600/10 blur-2xl transition group-hover:from-cyan-400/25 group-hover:to-indigo-500/15" aria-hidden="true"></div>
@@ -45,14 +47,29 @@
                         <p class="mt-4 text-[11px] font-medium text-slate-500">
                             Emitido em <span class="text-slate-400">{{ $certificate->issued_at?->format('d/m/Y H:i') }}</span>
                         </p>
+                        @if ($accessDeadline)
+                            <p class="mt-1 text-[11px] font-medium {{ $accessOpen ? 'text-slate-500' : 'text-amber-400/90' }}">
+                                @if ($accessOpen)
+                                    Disponível até <span class="text-slate-400">{{ $accessDeadline->format('d/m/Y H:i') }}</span>
+                                @else
+                                    Prazo encerrado em {{ $accessDeadline->format('d/m/Y H:i') }}
+                                @endif
+                            </p>
+                        @endif
                         <div class="mt-6 flex flex-wrap gap-2 border-t border-slate-800/80 pt-5">
-                            <a href="{{ route('app.certificados.baixar', $certificate) }}"
-                               class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/80">
-                                <svg class="h-4 w-4 shrink-0 opacity-90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                                </svg>
-                                Baixar
-                            </a>
+                            @if ($accessOpen)
+                                <a href="{{ route('app.certificados.baixar', $certificate) }}"
+                                   class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/80">
+                                    <svg class="h-4 w-4 shrink-0 opacity-90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                    Baixar
+                                </a>
+                            @else
+                                <span class="inline-flex flex-1 min-w-[8rem] cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-800/80 px-4 py-2.5 text-sm font-bold text-slate-500 ring-1 ring-slate-700/80">
+                                    Indisponível
+                                </span>
+                            @endif
                             <a href="{{ route('certificados.validar.por-hash', $certificate->validation_hash) }}"
                                target="_blank" rel="noopener noreferrer"
                                class="inline-flex items-center justify-center rounded-xl border border-slate-600/80 bg-slate-800/40 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-800/70 hover:text-white">

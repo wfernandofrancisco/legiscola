@@ -80,6 +80,10 @@ class CertificateController extends Controller
     {
         $tenant = Tenant::query()->find($certificate->tenant_id);
         $studentName = (string) data_get($certificate->snapshot, 'student_name', $certificate->student?->user?->name ?? 'Aluno');
+        $palestranteNome = (string) data_get($certificate->snapshot, 'palestrante_nome', $studentName);
+        $palestranteCpf = (string) data_get($certificate->snapshot, 'palestrante_cpf', '');
+        $isPalestrante = (string) data_get($certificate->snapshot, 'tipo_emissao', '') === 'palestrante'
+            || (bool) data_get($certificate->snapshot, 'is_palestrante', false);
         $courseName = (string) data_get(
             $certificate->snapshot,
             'course_name',
@@ -103,8 +107,12 @@ class CertificateController extends Controller
             ? 'Escola Legislativa da '.$tenantName
             : 'Escola Legislativa da Câmara de Vereadores';
 
+        $displayName = $isPalestrante ? $palestranteNome : $studentName;
+
         $replacements = [
-            '{{aluno_nome}}' => $studentName,
+            '{{aluno_nome}}' => $displayName,
+            '{{palestrante_nome}}' => $palestranteNome,
+            '{{palestrante_cpf}}' => $palestranteCpf,
             '{{curso_nome}}' => $courseName,
             '{{evento_nome}}' => $eventoNome,
             '{{carga_horaria}}' => $workload.' horas',
@@ -114,7 +122,9 @@ class CertificateController extends Controller
             '{{hash_validacao}}' => $certificate->validation_hash,
             '{{tenant_nome}}' => $tenantName,
             '{{escola_legislativa}}' => $schoolName,
-            '@{{aluno_nome}}' => $studentName,
+            '@{{aluno_nome}}' => $displayName,
+            '@{{palestrante_nome}}' => $palestranteNome,
+            '@{{palestrante_cpf}}' => $palestranteCpf,
             '@{{curso_nome}}' => $courseName,
             '@{{evento_nome}}' => $eventoNome,
             '@{{carga_horaria}}' => $workload.' horas',
@@ -129,6 +139,15 @@ class CertificateController extends Controller
         $templateHtml = (string) ($certificate->template?->html_template ?? '');
         if (trim($templateHtml) !== '') {
             $content = strtr($templateHtml, $replacements);
+        } elseif ($isPalestrante) {
+            $content = '<div style="text-align:center; padding:80px 60px; font-family: DejaVu Sans, Arial, sans-serif;">
+                <p style="font-size:20px; margin-top:40px;">Certificamos que</p>
+                <p style="font-size:30px; font-family: DejaVu Serif, Times New Roman, serif; font-style:italic; letter-spacing:1px; font-weight:bold; margin:18px 0;">'.e($palestranteNome).'</p>
+                <p style="font-size:18px; line-height:1.6;">atuou como palestrante no evento <strong>'.e($eventoNome !== '' ? $eventoNome : $courseName).'</strong>.</p>
+                <p style="font-size:16px; margin-top:22px;">Data de emissão: <strong>'.e($conclusionDate).'</strong>, em <strong>'.e($tenantCityState).'</strong>.</p>
+                <p style="margin-top:30px; font-size:14px;">Código de validação: '.e($certificate->validation_hash).'</p>
+                <p style="font-size:15px; margin-top:26px;">'.e($schoolName).'</p>
+            </div>';
         } elseif ($isEventCertificate) {
             $content = '<div style="text-align:center; padding:80px 60px; font-family: DejaVu Sans, Arial, sans-serif;">
                 <p style="font-size:20px; margin-top:40px;">Certificamos que</p>

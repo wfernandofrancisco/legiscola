@@ -57,6 +57,10 @@
             <a href="{{ route('portal.acesso.register') }}" class="font-semibold underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500" style="color:var(--portal-primary)">
                 Criar cadastro
             </a>
+            ·
+            <a href="{{ route('portal.tutorial') }}" class="font-semibold underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500" style="color:var(--portal-primary)">
+                Ver tutorial
+            </a>
         </p>
     </x-portal.auth-frame>
 @endsection

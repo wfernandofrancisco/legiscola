@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Enums\Escolaridade;
 use App\Models\GlobalPrivacyTerm;
 use App\Rules\CpfRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,20 +19,10 @@ class RegisterPortalAlunoRequest extends FormRequest
     {
         $digits = static fn (?string $v): string => preg_replace('/\D/', '', (string) $v);
 
-        $email = strtolower(trim((string) $this->input('email', '')));
-
-        $cep = $digits($this->input('cep'));
-        $telefone = $digits($this->input('telefone'));
-        $celular = $digits($this->input('celular'));
-        $uf = strtoupper(trim((string) $this->input('uf', '')));
-
         $this->merge([
-            'email' => $email,
+            'email' => strtolower(trim((string) $this->input('email', ''))),
             'cpf' => $digits($this->input('cpf')),
-            'cep' => $cep !== '' ? $cep : null,
-            'telefone' => $telefone !== '' ? $telefone : null,
-            'celular' => $celular !== '' ? $celular : null,
-            'uf' => $uf !== '' ? $uf : null,
+            'cidade' => trim((string) $this->input('cidade', '')),
         ]);
     }
 
@@ -49,17 +38,7 @@ class RegisterPortalAlunoRequest extends FormRequest
             'birth_date' => ['required', 'date', 'before:today'],
             'sexo' => ['required', 'in:masculino,feminino,outro,nao_informado'],
             'cpf' => ['required', 'string', 'size:11', new CpfRule, Rule::unique('students', 'cpf')],
-            'telefone' => ['nullable', 'string', 'max:11'],
-            'celular' => ['nullable', 'string', 'max:11'],
-            'cep' => ['nullable', 'string', 'max:8'],
-            'logradouro' => ['nullable', 'string', 'max:255'],
-            'numero' => ['nullable', 'string', 'max:20'],
-            'bairro' => ['nullable', 'string', 'max:255'],
-            'cidade' => ['nullable', 'string', 'max:255'],
-            'uf' => ['nullable', 'string', 'size:2'],
-            'profissao' => ['nullable', 'string', 'max:255'],
-            'escolaridade' => ['required', Rule::enum(Escolaridade::class)],
-            'photo' => ['nullable', 'image', 'max:2048'],
+            'cidade' => ['required', 'string', 'max:255'],
         ];
 
         if (GlobalPrivacyTerm::currentPublished() !== null) {
@@ -91,17 +70,7 @@ class RegisterPortalAlunoRequest extends FormRequest
             'birth_date' => 'data de nascimento',
             'sexo' => 'sexo',
             'cpf' => 'CPF',
-            'telefone' => 'telefone',
-            'celular' => 'celular',
-            'cep' => 'CEP',
-            'logradouro' => 'logradouro',
-            'numero' => 'número',
-            'bairro' => 'bairro',
             'cidade' => 'cidade',
-            'uf' => 'UF',
-            'profissao' => 'profissão',
-            'escolaridade' => 'escolaridade',
-            'photo' => 'foto',
             'accept_global_privacy' => 'aceite da política de privacidade',
         ];
     }

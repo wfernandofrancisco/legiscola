@@ -212,6 +212,15 @@
                     Quizzes
                 </a>
 
+                <a href="{{ route('admin.pesquisas-satisfacao.index') }}"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                          {{ request()->routeIs('admin.pesquisas-satisfacao.*') ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-white' }}">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v2m0 14v2m8-8h2M3 11H1m15.364-6.364l1.414 1.414M6.222 17.778l-1.414 1.414m12.728 0l-1.414-1.414M6.222 6.222 4.808 4.808M16 11a5 5 0 11-10 0 5 5 0 0110 0z" />
+                    </svg>
+                    Pesquisa satisfação
+                </a>
+
                 <a href="{{ route('admin.alunos.index') }}"
                     class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
                           {{ request()->routeIs('admin.alunos.index') || request()->routeIs('admin.alunos.create') || request()->routeIs('admin.alunos.edit') ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-white' }}">

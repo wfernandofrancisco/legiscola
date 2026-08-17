@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Portal;
 
-use App\Enums\Escolaridade;
 use App\Http\Controllers\Controller;
 use App\Models\GlobalPrivacyTerm;
 use App\Models\Tenant;
@@ -20,7 +19,6 @@ class PortalAcessoController extends Controller
     public function register(): View
     {
         return view('portal.acesso.register', array_merge($this->authPayload(), [
-            'escolaridadeOptions' => Escolaridade::options(),
             'globalPrivacyTerm' => GlobalPrivacyTerm::currentPublished(),
         ]));
     }
