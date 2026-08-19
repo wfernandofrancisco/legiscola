@@ -35,9 +35,9 @@ Route::prefix('aluno')
         Route::get('turmas', [TurmaController::class, 'index'])->name('turmas.index');
         Route::post('turmas/{courseClass}/inscrever', [TurmaController::class, 'enroll'])->name('turmas.inscrever');
         Route::get('turmas/{courseClass}', [TurmaController::class, 'show'])->name('turmas.show');
-        Route::get('aulas/{classLesson}', [AulaController::class, 'show'])->name('aulas.show');
-        Route::get('aulas/{classLesson}/material', [AulaController::class, 'downloadMaterial'])->name('aulas.material');
-        Route::post('aulas/{classLesson}/presenca', [AulaController::class, 'storePresence'])->name('aulas.presenca');
+        Route::get('aulas/{classLesson}', [AulaController::class, 'show'])->name('aulas.show')->whereNumber('classLesson');
+        Route::get('aulas/{classLesson}/material', [AulaController::class, 'downloadMaterial'])->name('aulas.material')->whereNumber('classLesson');
+        Route::post('aulas/{classLesson}/presenca', [AulaController::class, 'storePresence'])->name('aulas.presenca')->whereNumber('classLesson');
         Route::get('certificados', [CertificadoController::class, 'index'])->name('certificados.index');
         Route::get('certificados/{certificate}/baixar', [CertificadoController::class, 'download'])->name('certificados.baixar');
         Route::get('eventos', [EventoController::class, 'index'])->name('eventos.index');

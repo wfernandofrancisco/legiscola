@@ -15,6 +15,9 @@ class Enrollment extends Model
     use BelongsToTenant;
     use HasFactory;
 
+    /** Matrículas com as quais o aluno pode ver turma, aula, quiz e pesquisa. */
+    public const STATUSES_ALUNO_ACESSO = ['inscrito', 'cursando', 'concluido', 'baixa_presenca'];
+
     protected $fillable = [
         'tenant_id',
         'student_id',

@@ -21,10 +21,10 @@ class AulaController extends Controller
         private StudentServiceInterface $studentService
     ) {}
 
-    public function show(ClassLesson $classLesson): View
+    public function show(int $classLesson): View
     {
         $student = $this->requireStudent();
-        $this->assertEnrolledInLessonClass($student, $classLesson);
+        $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
 
         $classLesson->load('courseClass.course');
 
@@ -58,10 +58,10 @@ class AulaController extends Controller
         ));
     }
 
-    public function storePresence(ClassLesson $classLesson): RedirectResponse
+    public function storePresence(int $classLesson): RedirectResponse
     {
         $student = $this->requireStudent();
-        $this->assertEnrolledInLessonClass($student, $classLesson);
+        $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
 
         $classLesson->load('courseClass');
         $courseClass = $classLesson->courseClass;
@@ -91,10 +91,10 @@ class AulaController extends Controller
         return back()->with('success', 'Presença registrada nesta aula.');
     }
 
-    public function downloadMaterial(ClassLesson $classLesson): Response
+    public function downloadMaterial(int $classLesson): Response
     {
         $student = $this->requireStudent();
-        $this->assertEnrolledInLessonClass($student, $classLesson);
+        $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
 
         $path = $classLesson->material_file_path;
         abort_unless($path && Storage::disk('public')->exists($path), 404);
@@ -104,12 +104,20 @@ class AulaController extends Controller
         return Storage::disk('public')->download($path, $name);
     }
 
+    private function resolveEnrolledLesson(Student $student, int $lessonId): ClassLesson
+    {
+        $classLesson = ClassLesson::findByIdIgnoringTenantScope($lessonId);
+        $this->assertEnrolledInLessonClass($student, $classLesson);
+
+        return $classLesson;
+    }
+
     private function assertEnrolledInLessonClass(Student $student, ClassLesson $classLesson): void
     {
         Enrollment::query()
             ->where('student_id', $student->id)
             ->where('course_class_id', $classLesson->course_class_id)
-            ->whereIn('status', ['cursando', 'concluido'])
+            ->whereIn('status', Enrollment::STATUSES_ALUNO_ACESSO)
             ->firstOrFail();
     }
 

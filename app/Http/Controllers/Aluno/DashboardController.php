@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         $enrollments = Enrollment::query()
             ->where('student_id', $student->id)
-            ->whereIn('status', ['cursando', 'concluido'])
+            ->whereIn('status', Enrollment::STATUSES_ALUNO_ACESSO)
             ->with([
                 'courseClass.course',
                 'courseClass.lessons' => fn ($q) => $q->orderBy('date')->orderBy('start_time'),

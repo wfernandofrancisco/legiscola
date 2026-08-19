@@ -71,4 +71,12 @@ class ClassLesson extends Model
             ->where('id', $lessonId)
             ->firstOrFail();
     }
+
+    public static function findByIdIgnoringTenantScope(int $id): self
+    {
+        return static::query()
+            ->withoutGlobalScopes([TenantScope::class])
+            ->whereKey($id)
+            ->firstOrFail();
+    }
 }

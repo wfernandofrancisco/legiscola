@@ -25,7 +25,7 @@ class TurmaController extends Controller
 
         $enrollments = Enrollment::query()
             ->where('student_id', $student->id)
-            ->whereIn('status', ['inscrito', 'cursando', 'concluido'])
+            ->whereIn('status', Enrollment::STATUSES_ALUNO_ACESSO)
             ->with(['courseClass.course', 'courseClass.schedules', 'courseClass.lessons', 'courseClass.teachers'])
             ->orderByDesc('id')
             ->get();
@@ -83,7 +83,7 @@ class TurmaController extends Controller
         $enrollment = Enrollment::query()
             ->where('student_id', $student->id)
             ->where('course_class_id', $courseClass->id)
-            ->whereIn('status', ['inscrito', 'cursando', 'concluido'])
+            ->whereIn('status', Enrollment::STATUSES_ALUNO_ACESSO)
             ->firstOrFail();
 
         $courseClass->load([
