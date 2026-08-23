@@ -5,12 +5,12 @@ use App\Http\Controllers\Aluno\CadastroController;
 use App\Http\Controllers\Aluno\CertificadoController;
 use App\Http\Controllers\Aluno\DashboardController;
 use App\Http\Controllers\Aluno\EventoController;
+use App\Http\Controllers\Aluno\InscricaoController;
 use App\Http\Controllers\Aluno\PesquisaSatisfacaoController;
 use App\Http\Controllers\Aluno\SenhaController;
 use App\Http\Controllers\Aluno\TurmaController;
 use App\Http\Controllers\App\ProfileController;
 use App\Http\Controllers\App\QuizController;
-use App\Livewire\App\PortalInscricaoAluno;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,5 +54,7 @@ Route::prefix('aluno')
         Route::get('quizzes', [QuizController::class, 'index'])->name('quizzes.index');
         Route::get('quizzes/{quiz}', [QuizController::class, 'show'])->name('quizzes.show');
         Route::post('quizzes/{quiz}/enviar', [QuizController::class, 'submit'])->name('quizzes.submit');
-        Route::get('inscricoes', PortalInscricaoAluno::class)->name('inscricoes.index');
+        Route::get('inscricoes', [InscricaoController::class, 'index'])->name('inscricoes.index');
+        Route::post('inscricoes/turmas/{courseClass}', [InscricaoController::class, 'storeTurma'])->name('inscricoes.turmas.store');
+        Route::post('inscricoes/eventos/{evento}', [InscricaoController::class, 'storeEvento'])->name('inscricoes.eventos.store');
     });

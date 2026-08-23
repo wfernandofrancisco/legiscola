@@ -19,13 +19,13 @@
     $nav = [
         ['label' => 'Início', 'route' => route('app.dashboard'), 'match' => ['app.dashboard']],
         ['label' => 'Meus cursos', 'route' => route('app.turmas.index'), 'match' => ['app.turmas.*']],
+        ['label' => 'Inscrições', 'route' => route('app.inscricoes.index'), 'match' => ['app.inscricoes.*']],
         ['label' => 'Quizzes', 'route' => route('app.quizzes.index'), 'match' => ['app.quizzes.*']],
         ['label' => 'Certificados', 'route' => route('app.certificados.index'), 'match' => ['app.certificados.*']],
         ['label' => 'Meus eventos', 'route' => route('app.eventos.index'), 'match' => ['app.eventos.*']],
         ['label' => 'Pesquisas', 'route' => route('app.pesquisas-satisfacao.index'), 'match' => ['app.pesquisas-satisfacao.*']],
         ['label' => 'Dados cadastrais', 'route' => route('app.cadastro.edit'), 'match' => ['app.cadastro.*']],
         ['label' => 'Senha', 'route' => route('app.senha.edit'), 'match' => ['app.senha.*']],
-        ['label' => 'Inscrições', 'route' => route('app.inscricoes.index'), 'match' => ['app.inscricoes.*']],
     ];
 @endphp
 <!DOCTYPE html>

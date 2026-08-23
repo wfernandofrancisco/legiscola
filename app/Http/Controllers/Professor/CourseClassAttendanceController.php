@@ -11,6 +11,7 @@ use App\Models\CourseClass;
 use App\Models\Enrollment;
 use App\Models\TenantAdminSetting;
 use App\Models\User;
+use App\Support\ClockTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -121,8 +122,8 @@ class CourseClassAttendanceController extends Controller
             ->limit(10)
             ->get();
 
-        $defaultScheduleStart = optional($weeklyScheduleSlots->first())->start_time ?? '19:00';
-        $defaultScheduleEnd = optional($weeklyScheduleSlots->first())->end_time ?? '22:00';
+        $defaultScheduleStart = ClockTime::toHi(optional($weeklyScheduleSlots->first())->start_time) ?? '19:00';
+        $defaultScheduleEnd = ClockTime::toHi(optional($weeklyScheduleSlots->first())->end_time) ?? '22:00';
 
         return view('professor.course-classes.attendance-sheet', compact(
             'turma',
@@ -172,7 +173,20 @@ class CourseClassAttendanceController extends Controller
 
         $data = [...$request->validated(), 'course_class_id' => $turma->id];
 
-        $lesson = $this->classLessonService->create($data);
+        try {
+            $lesson = $this->classLessonService->create($data);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('professor.turmas.ficha-presenca', [
+                    'turma' => $turma,
+                    'date' => $request->validated()['date'] ?? now()->toDateString(),
+                    'tab' => 'chamadas',
+                ])
+                ->withInput()
+                ->with('error', 'Não foi possível cadastrar a aula. Tente de novo ou use o formulário completo em Aulas.');
+        }
 
         return redirect()
             ->route('professor.turmas.ficha-presenca', [

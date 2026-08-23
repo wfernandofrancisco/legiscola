@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassLesson;
 use App\Models\CourseClassAnnouncement;
 use App\Models\Enrollment;
+use App\Models\EventEnrollment;
 use App\Support\AlunoProgress;
 use Illuminate\View\View;
 
@@ -28,6 +29,7 @@ class DashboardController extends Controller
                 'announcements' => collect(),
                 'upcomingLessons' => collect(),
                 'enrollmentSnapshots' => collect(),
+                'upcomingEventEnrollments' => collect(),
             ]);
         }
 
@@ -70,6 +72,19 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        $upcomingEventEnrollments = EventEnrollment::query()
+            ->where('student_id', $student->id)
+            ->whereHas('event', function ($query): void {
+                $query->whereNotNull('date_time')
+                    ->where('date_time', '>=', now());
+            })
+            ->with('event')
+            ->join('events', 'events.id', '=', 'event_enrollments.event_id')
+            ->orderBy('events.date_time')
+            ->select('event_enrollments.*')
+            ->limit(8)
+            ->get();
+
         $enrollmentSnapshots = $enrollments->map(function (Enrollment $e) use ($student) {
             $cc = $e->courseClass;
             if (! $cc) {
@@ -89,7 +104,8 @@ class DashboardController extends Controller
             'student',
             'announcements',
             'upcomingLessons',
-            'enrollmentSnapshots'
+            'enrollmentSnapshots',
+            'upcomingEventEnrollments'
         ));
     }
 }

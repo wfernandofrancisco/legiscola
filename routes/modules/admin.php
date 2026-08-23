@@ -85,6 +85,7 @@ Route::prefix('admin')
         Route::resource('escola/eventos', EventController::class)->parameters(['eventos' => 'evento'])->except(['show']);
         Route::get('escola/alunos/mapa', [StudentGeolocationController::class, 'index'])->name('alunos.mapa');
         Route::get('escola/alunos/mapa/marcadores', [StudentGeolocationController::class, 'markers'])->name('alunos.mapa.marcadores');
+        Route::get('escola/alunos/{student}/historico', [StudentController::class, 'historico'])->name('alunos.historico');
         Route::resource('escola/alunos', StudentController::class)->parameters(['alunos' => 'student'])->except(['show']);
         Route::get('escola/alunos-busca', [StudentController::class, 'search'])->name('alunos.search');
         Route::resource('escola/professores-credenciamentos', ProfessorCredenciamentoController::class)

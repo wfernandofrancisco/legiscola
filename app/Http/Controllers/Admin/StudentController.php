@@ -6,7 +6,11 @@ use App\Contracts\Services\StudentServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Escola\StoreStudentRequest;
 use App\Http\Requests\Escola\UpdateStudentRequest;
+use App\Models\Attendance;
+use App\Models\Enrollment;
+use App\Models\EventEnrollment;
 use App\Models\Student;
+use App\Support\CourseClassAttendance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,6 +64,88 @@ class StudentController extends Controller
             ['label' => 'Editar aluno'],
         ];
         return view('admin.students.edit', compact('student', 'breadcrumbs'));
+    }
+
+    public function historico(Student $student): View
+    {
+        $student->load('user');
+
+        $enrollments = Enrollment::query()
+            ->where('student_id', $student->id)
+            ->whereHas('courseClass')
+            ->with([
+                'courseClass.course',
+                'courseClass.lessons' => fn ($q) => $q->orderBy('date')->orderBy('start_time'),
+            ])
+            ->latest('id')
+            ->paginate(8, ['*'], 'cursos')
+            ->withQueryString();
+
+        $lessonIds = collect($enrollments->items())
+            ->pluck('courseClass.lessons')
+            ->flatten()
+            ->pluck('id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $attendanceByLesson = $lessonIds->isEmpty()
+            ? collect()
+            : Attendance::query()
+                ->where('student_id', $student->id)
+                ->whereIn('class_lesson_id', $lessonIds)
+                ->get()
+                ->keyBy('class_lesson_id');
+
+        $turmaRows = collect($enrollments->items())->map(function (Enrollment $enrollment) use ($student, $attendanceByLesson) {
+            $turma = $enrollment->courseClass;
+            $lessons = $turma->lessons->map(function ($lesson) use ($attendanceByLesson) {
+                $att = $attendanceByLesson->get($lesson->id);
+
+                return [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'date' => $lesson->date?->format('d/m/Y'),
+                    'start' => $lesson->start_time ? substr((string) $lesson->start_time, 0, 5) : null,
+                    'end' => $lesson->end_time ? substr((string) $lesson->end_time, 0, 5) : null,
+                    'present' => $att?->is_present,
+                    'hasRecord' => $att !== null,
+                ];
+            });
+
+            return [
+                'id' => $enrollment->id,
+                'status' => $enrollment->status,
+                'course' => $turma->course?->name ?? 'Curso',
+                'turma' => $turma->name,
+                'turmaId' => $turma->id,
+                'presencePct' => CourseClassAttendance::studentPercent($student, $turma),
+                'lessonCount' => $lessons->count(),
+                'lessons' => $lessons,
+            ];
+        });
+
+        $eventEnrollments = EventEnrollment::query()
+            ->where('student_id', $student->id)
+            ->whereHas('event')
+            ->with('event')
+            ->latest('id')
+            ->paginate(8, ['*'], 'eventos')
+            ->withQueryString();
+
+        $breadcrumbs = [
+            ['label' => 'Painel', 'href' => route('admin.dashboard')],
+            ['label' => 'Alunos', 'href' => route('admin.alunos.index')],
+            ['label' => 'Histórico'],
+        ];
+
+        return view('admin.students.historico', compact(
+            'student',
+            'enrollments',
+            'turmaRows',
+            'eventEnrollments',
+            'breadcrumbs',
+        ));
     }
 
     public function store(StoreStudentRequest $request): RedirectResponse

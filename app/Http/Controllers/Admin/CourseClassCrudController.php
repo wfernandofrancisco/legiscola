@@ -32,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CourseClassCrudController extends Controller
@@ -347,32 +348,45 @@ class CourseClassCrudController extends Controller
 
     public function storeEnrollment(StoreCourseClassEnrollmentRequest $request, CourseClass $turma): RedirectResponse
     {
-        $this->enrollmentService->matricularEmTurmaAdmin(
-            (int) $request->validated()['student_id'],
-            $turma->id,
-            (string) ($request->validated()['status'] ?? 'inscrito'),
-            $request->validated()['observations'] ?? null
-        );
+        try {
+            $this->enrollmentService->matricularEmTurmaAdmin(
+                (int) $request->validated()['student_id'],
+                $turma->id,
+                (string) ($request->validated()['status'] ?? 'inscrito'),
+                $request->validated()['observations'] ?? null
+            );
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.turmas.show', ['turma' => $turma, 'tab' => 'matriculas'])
+                ->withInput()
+                ->withErrors($exception->errors());
+        }
 
-        return back()->with('success', 'Aluno matriculado na turma com sucesso.');
+        return redirect()
+            ->route('admin.turmas.show', ['turma' => $turma, 'tab' => 'matriculas'])
+            ->with('success', 'Aluno matriculado na turma com sucesso.');
     }
 
     public function searchStudents(Request $request, CourseClass $turma): JsonResponse
     {
         $term = trim((string) $request->string('q'));
+        $digits = preg_replace('/\D/', '', $term) ?? '';
 
         $results = Student::query()
-            ->with('user:id,name,email,status')
-            ->where('status', 'ativo')
-            ->whereHas('user', fn ($q) => $q->where('status', 'ativo'))
+            ->with('user:id,name,email')
             ->whereDoesntHave('enrollments', fn ($q) => $q->where('course_class_id', $turma->id))
-            ->when($term !== '', function ($query) use ($term): void {
-                $query->where(function ($q) use ($term): void {
+            ->when($term !== '', function ($query) use ($term, $digits): void {
+                $query->where(function ($q) use ($term, $digits): void {
                     $q->where('email', 'like', "%{$term}%")
+                        ->orWhere('enrollment_number', 'like', "%{$term}%")
                         ->orWhereHas('user', function ($uq) use ($term): void {
                             $uq->where('name', 'like', "%{$term}%")
                                 ->orWhere('email', 'like', "%{$term}%");
                         });
+
+                    if ($digits !== '') {
+                        $q->orWhere('cpf', 'like', '%'.$digits.'%');
+                    }
                 });
             })
             ->limit(20)
@@ -380,7 +394,7 @@ class CourseClassCrudController extends Controller
             ->map(fn (Student $student) => [
                 'id' => $student->id,
                 'name' => $student->user?->name ?? 'Sem nome',
-                'email' => $student->user?->email ?? '',
+                'email' => $student->user?->email ?? $student->email ?? '',
             ]);
 
         return response()->json($results);

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Professor;
 
 use App\Models\ClassLesson;
 use App\Models\CourseClass;
+use App\Support\ClockTime;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -14,13 +15,22 @@ class QuickClassLessonFromSheetRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'start_time' => ClockTime::toHis($this->input('start_time')),
+            'end_time' => ClockTime::toHis($this->input('end_time')),
+            'is_online' => $this->boolean('is_online'),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
             'title' => ['required', 'string', 'max:255'],
             'date' => ['required', 'date'],
-            'start_time' => ['required'],
-            'end_time' => ['required'],
+            'start_time' => ['required', 'date_format:H:i:s'],
+            'end_time' => ['required', 'date_format:H:i:s'],
             'is_online' => ['nullable', 'boolean'],
         ];
     }
@@ -35,15 +45,17 @@ class QuickClassLessonFromSheetRequest extends FormRequest
             }
 
             $date = (string) $this->input('date');
-            $startTime = (string) $this->input('start_time');
-            $endTime = (string) $this->input('end_time');
+            $startMinutes = ClockTime::minutes($this->input('start_time'));
+            $endMinutes = ClockTime::minutes($this->input('end_time'));
+            $startHis = ClockTime::toHis($this->input('start_time'));
+            $endHis = ClockTime::toHis($this->input('end_time'));
             $isOnline = (bool) $this->boolean('is_online');
 
-            if (! $date || ! $startTime || ! $endTime || $isOnline) {
+            if (! $date || $startMinutes === null || $endMinutes === null || $isOnline) {
                 return;
             }
 
-            if ($startTime >= $endTime) {
+            if ($startMinutes >= $endMinutes) {
                 $validator->errors()->add('end_time', 'O horário de fim deve ser maior que o horário de início.');
 
                 return;
@@ -53,14 +65,14 @@ class QuickClassLessonFromSheetRequest extends FormRequest
                 ->where('course_class_id', $turma->id)
                 ->whereDate('date', $date)
                 ->where('is_online', false)
-                ->where('start_time', '<', $endTime)
-                ->where('end_time', '>', $startTime)
+                ->where('start_time', '<', $endHis)
+                ->where('end_time', '>', $startHis)
                 ->exists();
 
             if ($hasConflict) {
                 $validator->errors()->add(
                     'start_time',
-                    'Já existe aula presencial nesta turma, no mesmo dia, com sobreposição de horário.'
+                    'Já existe aula presencial nesta turma, no mesmo dia, com sobreposição de horário. Altere o horário ou marque como aula online.'
                 );
             }
         });

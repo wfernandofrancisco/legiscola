@@ -4,14 +4,14 @@
 
     <x-breadcrumb :items="$breadcrumbs ?? []" />
 
-    <x-page-header title="Mapa de alunos" subtitle="Visualize endereços com coordenadas e filtre por perfil ou matrícula em turmas/cursos." />
+    <x-page-header title="Mapa de alunos" subtitle="O mapa abre em {{ $mapCenter['city'] }}/{{ $mapCenter['uf'] }}. Alunos sem coordenada própria entram pela cidade cadastrada." />
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         function studentMap() {
             const markersUrl = @json(route('admin.alunos.mapa.marcadores'));
-            const defaultCenter = [-22.185556, -47.390278];
-            const defaultZoom = 13;
+            const defaultCenter = [@json($mapCenter['lat']), @json($mapCenter['lng'])];
+            const defaultZoom = @json($mapCenter['zoom']);
 
             return {
                 map: null,

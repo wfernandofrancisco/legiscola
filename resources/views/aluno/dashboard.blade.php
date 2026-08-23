@@ -8,8 +8,46 @@
         <div class="mb-8 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-900/40 p-8 shadow-xl shadow-black/30">
             <p class="text-sm font-medium text-cyan-300/90">Bem-vindo de volta</p>
             <h2 class="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">{{ $user->name }}</h2>
-            <p class="mt-2 max-w-2xl text-sm text-slate-400">Acompanhe avisos da turma, próximas aulas, desempenho nos quizzes e presença — tudo em um só lugar.</p>
+            <p class="mt-2 max-w-2xl text-sm text-slate-400">Acompanhe avisos da turma, próximas aulas, eventos inscritos, desempenho nos quizzes e presença — tudo em um só lugar.</p>
         </div>
+
+        @if ($upcomingEventEnrollments->isNotEmpty())
+            <section class="mb-10">
+                <div class="mb-4 flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Próximos eventos</h3>
+                    <a href="{{ route('app.eventos.index') }}" class="text-xs font-semibold text-violet-300 hover:text-violet-200">Ver todos</a>
+                </div>
+                <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($upcomingEventEnrollments as $enrollment)
+                        @php
+                            $event = $enrollment->event;
+                            $geo = $event->isGeofenceCheckInEnabled();
+                            $windowOpen = $geo && $event->isPresenceWindowOpen();
+                        @endphp
+                        <li>
+                            <a href="{{ route('app.eventos.show', $event) }}" class="flex h-full flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-violet-500/40 hover:bg-slate-900">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if ($enrollment->presente)
+                                        <span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">Presente</span>
+                                    @elseif ($windowOpen)
+                                        <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">Chamada aberta</span>
+                                    @else
+                                        <span class="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-300">Inscrito</span>
+                                    @endif
+                                </div>
+                                <p class="mt-3 font-bold text-white">{{ $event->title }}</p>
+                                <p class="mt-1 text-xs font-medium text-violet-300/90">
+                                    {{ $event->date_time?->format('d/m/Y H:i') }}
+                                    @if ($event->city)
+                                        · {{ $event->city }}
+                                    @endif
+                                </p>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
 
         @if ($enrollmentSnapshots->isNotEmpty())
             <div class="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

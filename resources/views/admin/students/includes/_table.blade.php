@@ -27,6 +27,13 @@
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-1">
+                            <x-table-action-button color="cyan" title="Histórico" type="link"
+                                href="{{ route('admin.alunos.historico', $student) }}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </x-table-action-button>
                             <x-table-action-button color="blue" title="Editar" type="link"
                                 href="{{ route('admin.alunos.edit', $student) }}">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -180,12 +180,34 @@ class EnrollmentService implements EnrollmentServiceInterface
         }
 
         $existing = Enrollment::query()
-            ->with('courseClass.schedules')
+            ->with(['courseClass.schedules', 'courseClass.course'])
             ->where('student_id', $studentId)
             ->where('course_class_id', '!=', $courseClassId)
             ->whereIn('status', ['inscrito', 'cursando'])
             ->get()
-            ->filter(fn (Enrollment $e) => $e->courseClass && $e->courseClass->status !== 'cancelado' && $e->courseClass->tipo_turma === 'presencial');
+            ->filter(function (Enrollment $e) {
+                $cc = $e->courseClass;
+                if (! $cc || $cc->status === 'cancelado' || $cc->status === 'concluido' || $cc->tipo_turma !== 'presencial') {
+                    return false;
+                }
+
+                $lessonCount = $cc->lessons()->count();
+                if ($lessonCount > 0 && ! $cc->lessons()->whereDate('date', '>=', now()->toDateString())->exists()) {
+                    return false;
+                }
+
+                return true;
+            });
+
+        $weekdays = [
+            0 => 'domingo',
+            1 => 'segunda-feira',
+            2 => 'terça-feira',
+            3 => 'quarta-feira',
+            4 => 'quinta-feira',
+            5 => 'sexta-feira',
+            6 => 'sábado',
+        ];
 
         foreach ($existing as $enrollment) {
             foreach ($enrollment->courseClass->schedules as $other) {
@@ -200,8 +222,12 @@ class EnrollmentService implements EnrollmentServiceInterface
                     $endB = strtotime((string) $other->end_time);
 
                     if ($startA < $endB && $endA > $startB) {
+                        $day = $weekdays[(int) $other->weekday] ?? 'dia';
+                        $hora = substr((string) $other->start_time, 0, 5).'–'.substr((string) $other->end_time, 0, 5);
+                        $nome = $enrollment->courseClass->name;
+
                         throw ValidationException::withMessages([
-                            'student_id' => 'Conflito de horário: aluno já matriculado em outra turma presencial neste dia/horário.',
+                            'student_id' => "Conflito de horário com a turma \"{$nome}\" ({$day} {$hora}).",
                         ]);
                     }
                 }

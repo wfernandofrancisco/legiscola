@@ -7,7 +7,7 @@
         $turmaTab = 'quizzes';
     } elseif ($errors->hasAny(['body', 'channels', 'subject', 'consent_acknowledged', 'reference_date']) || filled(old('body'))) {
         $turmaTab = 'avisos';
-    } elseif (request()->filled('search') || request()->filled('filter_status') || $errors->has('student_id') || $errors->has('enrollment_status')) {
+    } elseif (request()->filled('search') || request()->filled('filter_status') || $errors->hasAny(['student_id', 'student_search', 'enrollment_status', 'course_class_id', 'status'])) {
         $turmaTab = 'matriculas';
     }
 
@@ -136,14 +136,19 @@
         {{-- Aba: Matrículas --}}
         @if ($turmaTab === 'matriculas')
         <div class="p-4 sm:p-6">
-            <form method="POST" action="{{ route('admin.turmas.matriculas.store', $turma) }}" class="mb-6">
+            <form id="form-matricular-aluno" method="POST" action="{{ route('admin.turmas.matriculas.store', $turma) }}" class="mb-6">
                 @csrf
-                <x-filter-panel title="Adicionar aluno à turma" subtitle="Matricule manualmente com triagem inicial.">
+                <x-filter-panel title="Adicionar aluno à turma" subtitle="Digite nome, e-mail ou CPF e clique no aluno na lista antes de matricular.">
+                    @if ($errors->hasAny(['student_id', 'course_class_id']))
+                        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
+                            {{ $errors->first('student_id') ?: $errors->first('course_class_id') }}
+                        </div>
+                    @endif
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                         <input type="hidden" id="student_id" name="student_id" value="{{ old('student_id') }}" />
                         <div class="relative md:col-span-2">
                             <x-form.input id="student_search" name="student_search" label="Aluno" :required="true"
-                                :value="old('student_search')" autocomplete="off" hint="Digite para buscar alunos ativos." />
+                                :value="old('student_search')" autocomplete="off" hint="Digite pelo menos 2 letras e clique no resultado." />
                             <div id="student-search-results"
                                 class="absolute z-30 mt-1 hidden max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
                             </div>
@@ -441,6 +446,19 @@
                             hideResults();
                         }
                     });
+
+                    var form = document.getElementById('form-matricular-aluno');
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            if (!studentId.value) {
+                                e.preventDefault();
+                                resultsBox.innerHTML =
+                                    '<div class="px-3 py-2 text-sm text-red-600">Selecione um aluno na lista antes de matricular.</div>';
+                                resultsBox.classList.remove('hidden');
+                                studentSearch.focus();
+                            }
+                        });
+                    }
                 })();
             </script>
         @endpush

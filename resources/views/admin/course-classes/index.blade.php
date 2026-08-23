@@ -8,13 +8,14 @@
             :reset-href="request()->hasAny(['search', 'status']) ? route('admin.turmas.index') : null">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <x-form.input label="Buscar turma" name="search" value="{{ request('search') }}" />
-                <x-form.select label="Status" name="status" :options="[
+                <x-form.select label="Situação" name="status" :options="[
+                    '' => 'Todas',
                     'cadastrado' => 'Cadastrado',
                     'inscricao' => 'Inscrição',
                     'em_andamento' => 'Em andamento',
                     'concluido' => 'Concluído',
                     'cancelado' => 'Cancelado',
-                ]" :selected="request('status')" />
+                ]" :selected="request('status', '')" />
             </div>
         </x-filter-panel>
     </form>

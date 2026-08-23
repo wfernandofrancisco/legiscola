@@ -7,6 +7,7 @@ use App\Models\AlunoBairro;
 use App\Models\Course;
 use App\Models\CourseClass;
 use App\Models\Student;
+use App\Support\NominatimGeocoder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,15 @@ class StudentGeolocationController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'course_id']);
 
-        return view('admin.students.geolocation', compact('breadcrumbs', 'bairros', 'cursos', 'turmas'));
+        $mapCenter = [
+            'lat' => (float) config('map.default_latitude'),
+            'lng' => (float) config('map.default_longitude'),
+            'zoom' => (int) config('map.default_zoom'),
+            'city' => (string) config('map.default_city'),
+            'uf' => (string) config('map.default_uf'),
+        ];
+
+        return view('admin.students.geolocation', compact('breadcrumbs', 'bairros', 'cursos', 'turmas', 'mapCenter'));
     }
 
     public function markers(Request $request): JsonResponse
@@ -73,8 +82,13 @@ class StudentGeolocationController extends Controller
                         ]);
                 },
             ])
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude');
+            ->where(function (Builder $q): void {
+                $q->where(function (Builder $inner): void {
+                    $inner->whereNotNull('latitude')->whereNotNull('longitude');
+                })->orWhere(function (Builder $inner): void {
+                    $inner->whereNotNull('cidade')->where('cidade', '!=', '');
+                });
+            });
 
         if (! empty($validated['sexo'])) {
             $query->where('sexo', $validated['sexo']);
@@ -93,11 +107,21 @@ class StudentGeolocationController extends Controller
             ->when(! empty($validated['bairro']), fn (Builder $q) => $q->where('bairro', $validated['bairro']))
             ->tap(fn (Builder $q) => $this->applyEnrollmentScope($q, $validated['enrollment_status'] ?? null, $courseId, $courseClassId))
             ->where(function (Builder $q): void {
-                $q->whereNull('latitude')->orWhereNull('longitude');
+                $q->where(function (Builder $inner): void {
+                    $inner->whereNull('latitude')->orWhereNull('longitude');
+                })->where(function (Builder $inner): void {
+                    $inner->whereNull('cidade')->orWhere('cidade', '');
+                });
             })
             ->count();
 
-        $markers = $students->map(function (Student $student) {
+        $cityCache = [];
+        $markers = $students->map(function (Student $student) use (&$cityCache) {
+            $coords = $this->resolveStudentCoordinates($student, $cityCache);
+            if ($coords === null) {
+                return null;
+            }
+
             $enrollments = $student->enrollments->map(function ($e) {
                 $turma = $e->courseClass;
 
@@ -113,14 +137,15 @@ class StudentGeolocationController extends Controller
                 'id' => $student->id,
                 'name' => (string) ($student->user?->name ?? '—'),
                 'email' => (string) ($student->user?->email ?? $student->email ?? ''),
-                'lat' => (float) $student->latitude,
-                'lng' => (float) $student->longitude,
+                'lat' => $coords['latitude'],
+                'lng' => $coords['longitude'],
                 'bairro' => $student->bairro,
+                'cidade' => $student->cidade,
                 'sexo' => $student->sexo,
                 'matricula' => $student->enrollment_number,
                 'enrollments' => $enrollments,
             ];
-        })->values()->all();
+        })->filter()->values()->all();
 
         return response()->json([
             'markers' => $markers,
@@ -191,5 +216,65 @@ class StudentGeolocationController extends Controller
                     });
             });
         }
+    }
+
+    /**
+     * @param  array<string, array{latitude: float, longitude: float}|null>  $cityCache
+     * @return array{latitude: float, longitude: float}|null
+     */
+    private function resolveStudentCoordinates(Student $student, array &$cityCache): ?array
+    {
+        if ($student->latitude !== null && $student->longitude !== null) {
+            return [
+                'latitude' => (float) $student->latitude,
+                'longitude' => (float) $student->longitude,
+            ];
+        }
+
+        $cidade = trim((string) $student->cidade);
+        if ($cidade === '') {
+            return null;
+        }
+
+        $uf = strtoupper(trim((string) ($student->uf ?: config('map.default_uf'))));
+        $cacheKey = mb_strtolower($cidade).'|'.$uf;
+
+        if (! array_key_exists($cacheKey, $cityCache)) {
+            $cityCache[$cacheKey] = $this->coordinatesForCity($cidade, $uf);
+        }
+
+        $coords = $cityCache[$cacheKey];
+        if ($coords === null) {
+            return null;
+        }
+
+        $jitterLat = (($student->id % 7) - 3) * 0.00045;
+        $jitterLng = (($student->id % 5) - 2) * 0.00045;
+
+        return [
+            'latitude' => $coords['latitude'] + $jitterLat,
+            'longitude' => $coords['longitude'] + $jitterLng,
+        ];
+    }
+
+    /**
+     * @return array{latitude: float, longitude: float}|null
+     */
+    private function coordinatesForCity(string $cidade, string $uf): ?array
+    {
+        $defaultCity = mb_strtolower(trim((string) config('map.default_city')));
+        $defaultUf = strtoupper(trim((string) config('map.default_uf')));
+
+        if (mb_strtolower($cidade) === $defaultCity && ($uf === '' || $uf === $defaultUf)) {
+            return [
+                'latitude' => (float) config('map.default_latitude'),
+                'longitude' => (float) config('map.default_longitude'),
+            ];
+        }
+
+        return NominatimGeocoder::geocode([
+            'cidade' => $cidade,
+            'uf' => $uf !== '' ? $uf : $defaultUf,
+        ]);
     }
 }

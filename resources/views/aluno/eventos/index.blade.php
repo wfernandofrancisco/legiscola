@@ -13,7 +13,7 @@
             <p class="mx-auto mt-2 max-w-md text-sm text-slate-500">
                 Quando você se inscrever em um evento pelo portal ou pela área de inscrições, ele aparecerá aqui.
             </p>
-            <a href="{{ route('app.inscricoes.index') }}"
+            <a href="{{ route('portal.eventos.index') }}"
                class="mt-6 inline-flex rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-500">
                 Ver inscrições disponíveis
             </a>
