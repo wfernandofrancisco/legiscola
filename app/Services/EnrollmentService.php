@@ -132,6 +132,34 @@ class EnrollmentService implements EnrollmentServiceInterface
         ]);
     }
 
+    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false): EventEnrollment
+    {
+        $event = $this->eventRepository->findById($eventId);
+        if (! $event) {
+            throw ValidationException::withMessages(['event_id' => 'Evento não encontrado.']);
+        }
+
+        if (EventEnrollment::query()
+            ->where('event_id', $eventId)
+            ->where('student_id', $studentId)
+            ->exists()) {
+            throw ValidationException::withMessages(['email' => 'Este participante já está inscrito neste evento.']);
+        }
+
+        if (! $event->hasVacancyForEnrollment()) {
+            throw ValidationException::withMessages([
+                'event_id' => 'Evento sem vagas disponíveis. Aumente o limite de vagas para incluir mais participantes.',
+            ]);
+        }
+
+        return EventEnrollment::query()->create([
+            'tenant_id' => TenantContext::getTenantId() ?? $event->tenant_id,
+            'event_id' => $eventId,
+            'student_id' => $studentId,
+            'presente' => $presente,
+        ]);
+    }
+
     public function paginateByCourseClass(int $courseClassId, int $perPage = 15, ?string $search = null, ?string $status = null): LengthAwarePaginator
     {
         return $this->repository->paginateByCourseClass($courseClassId, $perPage, $search, $status);

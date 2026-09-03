@@ -15,6 +15,13 @@ interface StudentServiceInterface
 
     public function create(array $data): Student;
 
+    /**
+     * Reusa aluno já cadastrado (e-mail ou CPF) ou cria usuário + aluno.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function findOrCreateForManualEnrollment(array $data): Student;
+
     public function update(Student $student, array $data): bool;
 
     public function delete(Student $student): bool;

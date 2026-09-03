@@ -40,4 +40,15 @@ class RegisterMoradorRequest extends FormRequest
             'uf' => ['required', 'string', 'size:2'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.unique' => 'Este e-mail já está cadastrado. Entre na sua conta ou use a recuperação de senha.',
+            'cpf.unique' => 'Este CPF já está cadastrado. Entre na sua conta ou use a recuperação de senha.',
+        ];
+    }
 }

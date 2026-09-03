@@ -33,11 +33,11 @@ class RegisterPortalAlunoRequest extends FormRequest
     {
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email', 'unique:students,email'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email'), Rule::unique('students', 'email')],
             'password' => ['required', 'confirmed', Password::defaults()],
             'birth_date' => ['required', 'date', 'before:today'],
             'sexo' => ['required', 'in:masculino,feminino,outro,nao_informado'],
-            'cpf' => ['required', 'string', 'size:11', new CpfRule, Rule::unique('students', 'cpf')],
+            'cpf' => ['required', 'string', 'size:11', new CpfRule, Rule::unique('users', 'cpf'), Rule::unique('students', 'cpf')],
             'cidade' => ['required', 'string', 'max:255'],
         ];
 
@@ -55,6 +55,8 @@ class RegisterPortalAlunoRequest extends FormRequest
     {
         return [
             'accept_global_privacy.accepted' => 'É necessário ler e aceitar a política de privacidade para concluir o cadastro.',
+            'email.unique' => 'Este e-mail já está cadastrado. Entre na sua conta ou use a recuperação de senha.',
+            'cpf.unique' => 'Este CPF já está cadastrado. Entre na sua conta ou use a recuperação de senha.',
         ];
     }
 

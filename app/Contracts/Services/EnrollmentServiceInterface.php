@@ -3,6 +3,7 @@
 namespace App\Contracts\Services;
 
 use App\Models\Enrollment;
+use App\Models\EventEnrollment;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface EnrollmentServiceInterface
@@ -11,6 +12,8 @@ interface EnrollmentServiceInterface
     public function matricularEmTurmaAdmin(int $studentId, int $courseClassId, string $status = 'inscrito', ?string $observations = null): Enrollment;
 
     public function inscreverEmEvento(int $studentId, int $eventId): void;
+
+    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false): EventEnrollment;
 
     public function paginateByCourseClass(int $courseClassId, int $perPage = 15, ?string $search = null, ?string $status = null): LengthAwarePaginator;
 

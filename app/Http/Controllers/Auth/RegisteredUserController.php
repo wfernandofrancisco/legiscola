@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterPortalAlunoRequest;
 use App\Models\GlobalPrivacyTerm;
 use App\Models\Student;
+use App\Models\Tenant;
+use App\Models\TenantAdminSetting;
 use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Auth\Events\Registered;
@@ -24,7 +26,16 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        $tenantId = TenantContext::getTenantId();
+        if ($tenantId === null) {
+            return view('auth.register');
+        }
+
+        return view('portal.acesso.register', [
+            'tenant' => Tenant::query()->findOrFail((int) $tenantId),
+            'settings' => TenantAdminSetting::query()->where('tenant_id', $tenantId)->first(),
+            'globalPrivacyTerm' => GlobalPrivacyTerm::currentPublished(),
+        ]);
     }
 
     /**

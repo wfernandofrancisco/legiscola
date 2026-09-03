@@ -1,4 +1,14 @@
 <x-guest-layout>
+    @if ($errors->any())
+        <div class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+            <ul class="list-disc space-y-1 pl-4">
+                @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('tenant.register.store') }}">
         @csrf
 

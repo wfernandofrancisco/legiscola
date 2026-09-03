@@ -51,6 +51,7 @@ $maxWidth = [
     {{-- ✅ Conteúdo do modal — z-10 pra ficar acima do backdrop --}}
     <div
         x-show="show"
+        x-on:click.stop
         class="relative w-full {{ $maxWidth }} sm:mx-auto bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl transform transition-all"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"

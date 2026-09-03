@@ -7,9 +7,14 @@
     <div class="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
         <div>
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Inscrições online</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Presença e certificados (quando o evento prevê certificado).</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Presença, certificados e inclusão manual de quem chegou sem se inscrever pelo portal.</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <button type="button"
+                onclick="document.getElementById('add-event-participant-modal')?.showModal()"
+                class="inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
+                Adicionar participante
+            </button>
             <a href="{{ route('admin.eventos.triagem-pdf', $event) }}" target="_blank" rel="noopener noreferrer"
                 class="inline-flex shrink-0 items-center justify-center rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-900/50">
                 Relatório triagem (PDF)
@@ -135,3 +140,74 @@
         @endif
     @endif
 </div>
+
+<dialog id="add-event-participant-modal"
+    class="fixed left-1/2 top-1/2 z-[80] m-0 w-[calc(100%-1.5rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-xl border-0 bg-white p-0 shadow-2xl dark:bg-gray-800 backdrop:bg-black/60">
+    <form method="POST" action="{{ route('admin.eventos.inscricao.store', $event) }}"
+        class="max-h-[90vh] overflow-y-auto">
+        @csrf
+        <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-700">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Lista de presença</p>
+            <h3 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Adicionar participante</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Cria o cadastro de aluno (usuário de acesso) se ainda não existir e inscreve nesta edição.
+            </p>
+        </div>
+
+        <div class="space-y-4 px-6 py-5">
+            @if ($errors->eventParticipant->isNotEmpty())
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
+                    <ul class="list-disc space-y-1 pl-4">
+                        @foreach ($errors->eventParticipant->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <x-form.input id="participant_name" name="name" label="Nome completo" :required="true" :value="old('name')" autocomplete="name" />
+                <x-form.input id="participant_cpf" name="cpf" label="CPF" data-mask="cpf" :required="true" :value="old('cpf')" inputmode="numeric" />
+                <x-form.date id="participant_birth_date" name="birth_date" label="Data de nascimento" :required="true" :value="old('birth_date')" />
+                <x-form.select id="participant_sexo" name="sexo" label="Sexo" :required="true" :selected="old('sexo')" :options="[
+                    'masculino' => 'Masculino',
+                    'feminino' => 'Feminino',
+                    'outro' => 'Outro',
+                    'nao_informado' => 'Não informado',
+                ]" />
+                <x-form.input id="participant_email" name="email" label="E-mail" type="email" :required="true" :value="old('email')" autocomplete="email" />
+                <x-form.input id="participant_cidade" name="cidade" label="Cidade" :required="true" :value="old('cidade')" />
+                <x-form.input id="participant_password" name="password" label="Senha (opcional)" type="password" autocomplete="new-password"
+                    hint="Se ficar em branco, o aluno recebe e-mail para definir a senha." />
+                <x-form.input id="participant_password_confirmation" name="password_confirmation" label="Confirmar senha" type="password" autocomplete="new-password" />
+            </div>
+
+            <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-200">
+                <input type="checkbox" name="presente" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" @checked(old('presente'))>
+                <span>
+                    <span class="font-semibold">Já está presente</span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Marque se a pessoa chegou ao evento e a presença deve constar agora.</span>
+                </span>
+            </label>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+            <button type="button" onclick="document.getElementById('add-event-participant-modal')?.close()"
+                class="inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                Cancelar
+            </button>
+            <button type="submit"
+                class="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Inscrever no evento
+            </button>
+        </div>
+    </form>
+</dialog>
+@if ($errors->eventParticipant->isNotEmpty())
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('add-event-participant-modal')?.showModal();
+        });
+    </script>
+@endif
+

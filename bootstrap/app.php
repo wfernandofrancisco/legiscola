@@ -13,11 +13,13 @@ use App\Http\Middleware\EnsureUserType;
 use App\Http\Middleware\SetTenantContext;
 use App\Models\User;
 use App\Support\TenantWebEntryUrls;
+use App\Support\UniqueConstraintUserMessage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -91,6 +93,21 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->renderable(function (UniqueConstraintViolationException $e, Request $request) {
+            $mapped = UniqueConstraintUserMessage::fromException($e);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $mapped['message'],
+                    'errors' => [$mapped['field'] => [$mapped['message']]],
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors([$mapped['field'] => $mapped['message']]);
+        });
+
         $exceptions->renderable(function (\Throwable $e, Request $request) {
             if ($e instanceof AuthorizationException) {
                 return null;

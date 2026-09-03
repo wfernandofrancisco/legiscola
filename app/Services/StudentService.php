@@ -87,6 +87,30 @@ class StudentService implements StudentServiceInterface
         });
     }
 
+    public function findOrCreateForManualEnrollment(array $data): Student
+    {
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+        $cpf = preg_replace('/\D/', '', (string) ($data['cpf'] ?? '')) ?? '';
+
+        if ($email !== '') {
+            $byEmail = $this->repository->findByEmail($email);
+            if ($byEmail) {
+                return $byEmail;
+            }
+        }
+
+        if ($cpf !== '') {
+            $byCpf = $this->repository->findByCpf($cpf);
+            if ($byCpf) {
+                return $byCpf;
+            }
+        }
+
+        unset($data['presente']);
+
+        return $this->create($data);
+    }
+
     public function update(Student $student, array $data): bool
     {
         return DB::transaction(function () use ($student, $data): bool {

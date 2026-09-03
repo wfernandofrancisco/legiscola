@@ -15,7 +15,11 @@
         @if ($errors->any())
             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
                 <p class="font-semibold">Não foi possível concluir o cadastro.</p>
-                <p class="mt-1 text-xs sm:text-sm">{{ $errors->first() }}</p>
+                <ul class="mt-2 list-disc space-y-1 pl-4 text-xs sm:text-sm">
+                    @foreach ($errors->all() as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 

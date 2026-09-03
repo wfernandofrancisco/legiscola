@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\Services\EnrollmentServiceInterface;
 use App\Contracts\Services\EventCrudServiceInterface;
+use App\Contracts\Services\StudentServiceInterface;
 use App\Enums\CertificateTipoEmissao;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Escola\StoreEventParticipantRequest;
 use App\Http\Requests\Escola\StoreEventRequest;
 use App\Http\Requests\Escola\UpdateEventRequest;
 use App\Models\Certificate;
@@ -16,6 +19,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -116,6 +120,36 @@ class EventController extends Controller
         $evento->enrollments()->update(['presente' => true]);
 
         return back()->with('success', 'Todos os inscritos foram marcados como presentes.');
+    }
+
+    public function storeManualParticipant(
+        StoreEventParticipantRequest $request,
+        Event $evento,
+        StudentServiceInterface $studentService,
+        EnrollmentServiceInterface $enrollmentService
+    ): RedirectResponse {
+        try {
+            $student = $studentService->findOrCreateForManualEnrollment($request->safe()->except(['presente']));
+            $enrollmentService->inscreverEmEventoAdmin(
+                (int) $student->id,
+                (int) $evento->id,
+                $request->boolean('presente')
+            );
+        } catch (ValidationException $exception) {
+            return back()
+                ->withErrors($exception->errors(), 'eventParticipant')
+                ->withInput();
+        }
+
+        $label = $student->wasRecentlyCreated
+            ? 'Participante cadastrado e inscrito no evento.'
+            : 'Participante inscrito no evento.';
+
+        if ($student->wasRecentlyCreated && ! $request->filled('password')) {
+            $label .= ' Enviamos o e-mail para o aluno definir a senha de acesso.';
+        }
+
+        return back()->with('success', $label);
     }
 
     public function printEventTriagemPdf(Event $evento)
