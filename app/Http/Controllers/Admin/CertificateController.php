@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Escola\IssueCertificateRequest;
 use App\Models\Certificate;
 use App\Models\Tenant;
+use App\Support\CertificatePdfStyle;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -184,6 +185,7 @@ class CertificateController extends Controller
                 <style>
                     @page { margin: 0; size: A4 landscape; }
                     html, body { margin: 0; padding: 0; width: 297mm; height: 210mm; font-family: DejaVu Sans, Arial, sans-serif; }
+                    '.CertificatePdfStyle::fontFaceCss().'
                     .sheet { position: relative; width: 297mm; height: 210mm; overflow: hidden; }
                     .bg-image { position: absolute; top: 0; left: 0; width: 297mm; height: 210mm; z-index: 1; }
                     .content { position: absolute; top: 0; left: 0; width: 297mm; height: 210mm; z-index: 2; padding: 0; box-sizing: border-box; }
