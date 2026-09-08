@@ -154,8 +154,8 @@
                     <figure class="relative overflow-hidden rounded-[1.85rem] border border-slate-200/85 bg-white/95 p-8 shadow-xl ring-1 shadow-slate-900/10 ring-slate-200/70 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/70 dark:ring-white/10">
                         <figcaption class="sr-only">{{ $portalAdminSettings?->nome_camara ?? $heroEyebrow }}</figcaption>
                         <div class="aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-slate-100 via-white to-slate-50 ring-1 ring-slate-200/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 dark:ring-slate-700/80">
-                            @if(!empty($portalAdminSettings?->logo_prefeitura_path))
-                                <img src="{{ asset('storage/'.$portalAdminSettings->logo_prefeitura_path) }}" alt=""
+                            @if(!empty($portalAdminSettings?->logo_escola_path))
+                                <img src="{{ asset('storage/'.$portalAdminSettings->logo_escola_path) }}" alt=""
                                      class="h-full w-full object-contain p-8 sm:p-10" loading="lazy"/>
                             @else
                                 <div class="flex h-full w-full items-center justify-center p-12">
@@ -195,12 +195,11 @@
     </section>
 
     {{-- Métricas — faixa escura institucional (prioriza tinta do tema) --}}
-    <section class="relative isolate overflow-hidden border-y border-black/25 py-16 text-white animate__animated animate__backInLeft"
-             style="background:linear-gradient(145deg,color-mix(in srgb,var(--portal-secondary,#0f2942) 88%,black),rgb(10,22,43) 55%,rgb(8,17,38))">
-        <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-40 dark:opacity-50">
-            <div class="absolute inset-0" style="background:radial-gradient(ellipse 80% 50% at 15% -20%,color-mix(in srgb,var(--portal-primary,#2563eb) 45%,transparent),transparent);"></div>
-            <div class="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.04)_52%,transparent)] bg-[length:56px_100%] opacity-75"></div>
-        </div>
+   
+
+    <section class="relative overflow-hidden py-16 sm:py-20 animate__animated animate__fadeInUp">
+        <div class="absolute inset-0 -z-10" style="background:linear-gradient(135deg,var(--portal-secondary),color-mix(in srgb,var(--portal-primary) 65%,black))"></div>
+        <div class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,.12)_0%,transparent_58%)]"></div>
         <div class="relative mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 sm:gap-14 sm:px-6 lg:grid-cols-4 lg:px-8"
              x-data="{ showStats: false }"
              x-init="setTimeout(() => showStats = true, 150)">
@@ -215,7 +214,7 @@
                     <p class="text-4xl font-black tabular-nums tracking-tight text-white sm:text-5xl"
                        style="text-shadow:0 2px 14px rgba(0,0,0,.35);">{{ number_format($item['v'], 0, ',', '.') }}</p>
                     <p class="mt-3 text-[13px] font-semibold uppercase tracking-[0.12em]"
-                       style="color:color-mix(in srgb,var(--portal-primary,#7dd3fc) 92%,transparent)">{{ $item['label'] }}</p>
+                       style="color:color-mix(in srgb,var(--portal-primary,#c8dce6) 92%,transparent)">{{ $item['label'] }}</p>
                 </div>
             @endforeach
         </div>

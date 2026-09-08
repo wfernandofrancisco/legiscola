@@ -58,6 +58,23 @@
                 </div>
 
                 <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emblema da Escola Legislativa</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Aparece no cabeçalho do portal, ao lado do emblema da câmara. PNG, JPG ou WebP — até 4&nbsp;MB.
+                    </p>
+                    @if($settings->logo_escola_path)
+                        <div class="mb-2 flex items-center gap-3">
+                            <img src="{{ asset('storage/'.$settings->logo_escola_path) }}" alt="" class="h-14 w-auto object-contain border border-gray-200 dark:border-gray-600 rounded bg-white p-1"/>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <input type="checkbox" name="remove_logo_escola" value="1" class="rounded border-gray-300" {{ old('remove_logo_escola') ? 'checked' : '' }}/>
+                                Remover emblema atual
+                            </label>
+                        </div>
+                    @endif
+                    <input type="file" name="logo_escola" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200"/>
+                </div>
+
+                <div class="mt-6">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto de capa do portal (home)</label>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         Imagem de fundo do destaque principal do site público. Recomendado: paisagem, boa luz, sem texto pequeno. PNG, JPG ou WebP — até 8&nbsp;MB. Se não houver foto, o portal usa um fundo só com gradientes.

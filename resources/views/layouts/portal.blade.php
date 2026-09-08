@@ -102,6 +102,17 @@
         #portal-site-header.portal-header--scrolled .portal-header-cta:hover {
             background-color: rgb(255 255 255 / 0.1) !important;
         }
+        #portal-site-header.portal-header--scrolled .portal-header-docente {
+            border-color: rgb(255 255 255 / 0.65) !important;
+            color: #fff !important;
+            background-color: transparent !important;
+        }
+        #portal-site-header.portal-header--scrolled .portal-header-docente:hover {
+            background-color: rgb(255 255 255 / 0.12) !important;
+        }
+        #portal-site-header.portal-header--scrolled .portal-header-row-actions {
+            border-color: rgb(255 255 255 / 0.12) !important;
+        }
         #portal-site-header.portal-header--scrolled .portal-header-menu-btn {
             color: #fff !important;
         }
@@ -135,11 +146,14 @@
     >
         @php($pf = $portalPlatform ?? config('portal.platform', []))
         @php($pfLogo = $pf['logo_path'] ?? null)
-        <nav class="mx-auto flex max-w-7xl items-start justify-between gap-4 px-4 py-3 sm:items-center sm:py-4 sm:gap-6 sm:px-6 lg:px-8">
-            @php($legiscolaLogoPath = 'img/logo.png')
-            {{-- Linha 1: logos · Linha 2: "Escola Legislativa" + nome do tenant (abaixo dos dois) --}}
-            <div class="flex min-w-0 flex-1 flex-col gap-1 sm:gap-1.5">
-                <div class="flex min-w-0 items-center gap-3 sm:gap-5">
+        @php($legiscolaLogoPath = 'img/logo.png')
+        @php($headerBrandTitle = ($pfLogo && is_string($pfLogo) && file_exists(public_path($pfLogo)))
+            ? ($portalAdminSettings?->nome_camara ?: $portalTenant?->portalChamberBrandLine())
+            : ($portalAdminSettings?->nome_camara ?: $portalTenant?->portalBrandTitle()))
+        <nav class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:gap-3.5 sm:px-6 sm:py-4 lg:px-8">
+            {{-- Linha 1: logos + nome da câmara --}}
+            <div class="flex min-w-0 items-center justify-between gap-3">
+                <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
                     @if(file_exists(public_path($legiscolaLogoPath)))
                         <a href="{{ route('home') }}" class="portal-header-legiscola-logo flex shrink-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
                            aria-label="{{ config('app.name') }} — início">
@@ -148,59 +162,74 @@
                         </a>
                         <span class="portal-header-divider hidden min-h-[2.75rem] w-px shrink-0 self-stretch bg-slate-200 sm:block dark:bg-slate-600" aria-hidden="true"></span>
                     @endif
-                    <a href="{{ route('home') }}" class="flex shrink-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
-                       aria-label="{{ ($portalTenant?->portalBrandTitle()) ?? __('Início') }}">
+                    <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2.5 sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
+                       aria-label="{{ $headerBrandTitle ?: (($portalTenant?->portalBrandTitle()) ?? __('Início')) }}">
                         @if(!empty($portalAdminSettings?->logo_prefeitura_path))
                             <img src="{{ asset('storage/'.$portalAdminSettings->logo_prefeitura_path) }}"
                                  alt=""
+                                 width="132"
+                                 height="44"
                                  loading="lazy"
+                                 decoding="async"
                                  class="h-11 w-auto max-h-11 shrink-0 object-contain"/>
                         @else
                             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md"
-                                  style="background:linear-gradient(135deg, var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))">
+                                  style="background:linear-gradient(135deg, var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))"
+                                  aria-hidden="true">
                                 {{ $portalTenant?->portalBrandInitials() ?? 'EL' }}
+                            </span>
+                        @endif
+                        @if(!empty($portalAdminSettings?->logo_escola_path))
+                            <img src="{{ asset('storage/'.$portalAdminSettings->logo_escola_path) }}"
+                                 alt="Escola Legislativa"
+                                 width="132"
+                                 height="44"
+                                 loading="lazy"
+                                 decoding="async"
+                                 class="h-11 w-auto max-h-11 shrink-0 object-contain"/>
+                        @endif
+                        @if(filled($headerBrandTitle))
+                            <span class="portal-header-divider hidden min-h-[2.75rem] w-px shrink-0 self-stretch bg-slate-200 sm:block dark:bg-slate-600" aria-hidden="true"></span>
+                            <span class="min-w-0 text-left leading-tight">
+                                <span class="portal-header-eyebrow block text-xs font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-300 sm:text-sm dark:text-slate-400">
+                                    Escola Legislativa
+                                </span>
+                                <span class="portal-header-title line-clamp-2 text-pretty block text-base font-bold leading-snug text-slate-900 transition-colors duration-300 sm:text-lg dark:text-white">
+                                    {{ $headerBrandTitle }}
+                                </span>
                             </span>
                         @endif
                     </a>
                 </div>
-                <a href="{{ route('home') }}" class="min-w-0 max-w-full self-start overflow-hidden text-left leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md -mt-px sm:-mt-0">
-                    <span class="portal-header-eyebrow block text-xs font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-300 sm:text-sm dark:text-slate-400">
-                        Escola Legislativa
-                    </span>
-                    <span class="portal-header-title line-clamp-2 text-pretty block text-base font-bold leading-snug text-slate-900 transition-colors duration-300 sm:text-lg dark:text-white">
-                        @if($pfLogo && is_string($pfLogo) && file_exists(public_path($pfLogo)))
-                            {{ $portalAdminSettings?->nome_camara ?: $portalTenant?->portalChamberBrandLine() }}
-                        @else
-                            {{ $portalTenant?->portalBrandTitle() }}
-                        @endif
-                    </span>
-                </a>
-            </div>
 
-            <div class="hidden items-center gap-1 lg:flex">
-                @include('portal.partials.nav-desktop')
-            </div>
-
-            <div class="flex items-center gap-2">
-                
-                <a href="{{ route('portal.acesso.docente.login') }}"
-                   class="hidden rounded-full border-2 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 sm:inline-flex dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
-                   style="border-color:color-mix(in srgb,var(--portal-primary,#3b82f6),transparent 65%)">
-                    Docente
-                </a>
-                <a href="{{ route('portal.acesso.login') }}"
-                   class="portal-header-cta hidden rounded-full border border-transparent px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 sm:inline-flex"
-                   style="background-image:linear-gradient(135deg,var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))">
-                    Área do aluno
-                </a>
                 <button type="button"
                         id="portal-menu-toggle"
-                        class="portal-header-menu-btn inline-flex rounded-lg p-2 text-slate-700 transition hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 lg:hidden dark:text-slate-100 dark:hover:bg-slate-800"
+                        class="portal-header-menu-btn inline-flex shrink-0 rounded-lg p-2 text-slate-700 transition hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 lg:hidden dark:text-slate-100 dark:hover:bg-slate-800"
                         aria-expanded="false"
                         aria-controls="portal-menu-panel">
                     <span class="sr-only">Abrir ou fechar menu</span>
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
+            </div>
+
+            {{-- Linha 2: menu + acessos (desktop / tablet) --}}
+            <div class="portal-header-row-actions hidden min-w-0 items-center justify-between gap-3 border-t border-slate-200/80 pt-3 sm:flex dark:border-slate-700/80">
+                <div class="hidden min-w-0 flex-1 items-center gap-1 lg:flex">
+                    @include('portal.partials.nav-desktop')
+                </div>
+
+                <div class="flex flex-1 items-center justify-end gap-2 lg:flex-none">
+                    <a href="{{ route('portal.acesso.docente.login') }}"
+                       class="portal-header-docente inline-flex rounded-full border-2 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
+                       style="border-color:color-mix(in srgb,var(--portal-primary,#3b82f6),transparent 65%)">
+                        Docente
+                    </a>
+                    <a href="{{ route('portal.acesso.login') }}"
+                       class="portal-header-cta inline-flex rounded-full border border-transparent px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95"
+                       style="background-image:linear-gradient(135deg,var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))">
+                        Área do aluno
+                    </a>
+                </div>
             </div>
         </nav>
 

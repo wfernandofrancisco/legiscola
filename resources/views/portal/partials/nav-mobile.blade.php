@@ -11,8 +11,8 @@
     <a href="{{ route('portal.contato') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Contato</a>
     <a href="{{ route('portal.certificados.validar') }}" class="portal-nav-mobile-a rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">Validar certificado</a>
     <hr class="my-2 border-slate-200 dark:border-slate-700"/>
-    <a href="{{ route('portal.acesso.docente.login') }}" class="rounded-lg border-2 px-3 py-2 font-semibold text-center text-slate-800 dark:border-slate-500 dark:text-slate-100"
+    <a href="{{ route('portal.acesso.docente.login') }}" class="portal-header-docente rounded-lg border-2 px-3 py-2 font-semibold text-center text-slate-800 dark:border-slate-500 dark:text-slate-100"
        style="border-color:color-mix(in srgb,var(--portal-primary,#3b82f6),transparent 65%)">Área do docente — Entrar</a>
-    <a href="{{ route('portal.acesso.login') }}" class="rounded-lg px-3 py-2 font-semibold text-white shadow"
+    <a href="{{ route('portal.acesso.login') }}" class="portal-header-cta rounded-lg px-3 py-2 font-semibold text-center text-white shadow"
        style="background:linear-gradient(135deg,var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))">Área do aluno — Entrar</a>
 </div>

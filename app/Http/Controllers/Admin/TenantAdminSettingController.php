@@ -47,6 +47,9 @@ class TenantAdminSettingController extends Controller
             'logo_prefeitura' => ['nullable', 'image', 'max:4096'],
             'remove_logo_prefeitura' => ['nullable', 'boolean'],
 
+            'logo_escola' => ['nullable', 'image', 'max:4096'],
+            'remove_logo_escola' => ['nullable', 'boolean'],
+
             'foto_capa' => ['nullable', 'image', 'max:8192'],
             'remove_foto_capa' => ['nullable', 'boolean'],
 
@@ -105,6 +108,18 @@ class TenantAdminSettingController extends Controller
                 $disk->delete($settings->logo_prefeitura_path);
             }
             $updates['logo_prefeitura_path'] = null;
+        }
+
+        if ($request->hasFile('logo_escola')) {
+            if ($settings->logo_escola_path) {
+                $disk->delete($settings->logo_escola_path);
+            }
+            $updates['logo_escola_path'] = $request->file('logo_escola')->store($prefix, 'public');
+        } elseif ($request->boolean('remove_logo_escola')) {
+            if ($settings->logo_escola_path) {
+                $disk->delete($settings->logo_escola_path);
+            }
+            $updates['logo_escola_path'] = null;
         }
 
         if ($request->hasFile('foto_capa')) {

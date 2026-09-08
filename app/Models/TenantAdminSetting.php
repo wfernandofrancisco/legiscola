@@ -28,6 +28,7 @@ class TenantAdminSetting extends Model
         'facebook',
         'telefone',
         'logo_prefeitura_path',
+        'logo_escola_path',
         'foto_capa_path',
         'primary_color',
         'secondary_color',
