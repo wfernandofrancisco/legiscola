@@ -429,6 +429,16 @@
                         {{ session('error') }}
                     </div>
                 @endif
+                @if ($errors->any() && ! request()->routeIs('admin.turmas.show'))
+                    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300" role="alert">
+                        <p class="font-semibold">Corrija os campos abaixo:</p>
+                        <ul class="mt-2 list-inside list-disc text-xs">
+                            @foreach ($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 {{ $slot }}
             </main>

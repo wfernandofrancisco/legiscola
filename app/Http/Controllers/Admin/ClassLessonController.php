@@ -59,6 +59,13 @@ class ClassLessonController extends Controller
             $data['material_file_name'] = $file->getClientOriginalName();
         }
         $this->service->create($data);
+        $courseClassId = (int) ($data['course_class_id'] ?? 0);
+        if ($courseClassId > 0) {
+            return redirect()
+                ->route('admin.turmas.show', ['turma' => $courseClassId, 'tab' => 'aulas'])
+                ->with('success', 'Aula criada com sucesso.');
+        }
+
         return redirect()->route('admin.aulas.index')->with('success', 'Aula criada com sucesso.');
     }
 
@@ -93,12 +100,25 @@ class ClassLessonController extends Controller
         }
 
         $this->service->update($aula, $data);
+        if ((int) $aula->course_class_id > 0) {
+            return redirect()
+                ->route('admin.turmas.show', ['turma' => $aula->course_class_id, 'tab' => 'aulas'])
+                ->with('success', 'Aula atualizada com sucesso.');
+        }
+
         return redirect()->route('admin.aulas.index')->with('success', 'Aula atualizada com sucesso.');
     }
 
     public function destroy(ClassLesson $aula): RedirectResponse
     {
+        $courseClassId = (int) $aula->course_class_id;
         $this->service->delete($aula);
+        if ($courseClassId > 0) {
+            return redirect()
+                ->route('admin.turmas.show', ['turma' => $courseClassId, 'tab' => 'aulas'])
+                ->with('success', 'Aula removida com sucesso.');
+        }
+
         return redirect()->route('admin.aulas.index')->with('success', 'Aula removida com sucesso.');
     }
 

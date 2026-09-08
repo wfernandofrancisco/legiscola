@@ -112,6 +112,7 @@ class CourseClassCrudController extends Controller
     {
         $turma->load([
             'linkedQuizzes' => fn ($q) => $q->orderBy('title'),
+            'course:id,name',
         ]);
 
         $summary = $this->enrollmentService->statusSummary($turma->id);
@@ -154,7 +155,7 @@ class CourseClassCrudController extends Controller
         $breadcrumbs = [
             ['label' => 'Painel', 'href' => route('admin.dashboard')],
             ['label' => 'Turmas', 'href' => route('admin.turmas.index')],
-            ['label' => 'Triagem de alunos'],
+            ['label' => $turma->name],
         ];
 
         $recentAnnouncements = CourseClassAnnouncement::query()
@@ -176,18 +177,22 @@ class CourseClassCrudController extends Controller
                 ->all();
         }
 
-        return view('admin.course-classes.show', compact(
-            'turma',
-            'summary',
-            'enrollments',
-            'breadcrumbs',
-            'totalAttendanceDates',
-            'attendancePercentageByStudent',
-            'latestCertificateHashByStudent',
-            'activeCertificateTemplate',
-            'recentAnnouncements',
-            'surveyCompletedByStudent'
-        ));
+        $turmaLessons = ClassLesson::orderedForCourseClass((int) $turma->id);
+        $attendanceSheet = $this->prepareAttendanceSheetContext($request, $turma);
+
+        return view('admin.course-classes.show', array_merge([
+            'turma' => $turma,
+            'summary' => $summary,
+            'enrollments' => $enrollments,
+            'breadcrumbs' => $breadcrumbs,
+            'totalAttendanceDates' => $totalAttendanceDates,
+            'attendancePercentageByStudent' => $attendancePercentageByStudent,
+            'latestCertificateHashByStudent' => $latestCertificateHashByStudent,
+            'activeCertificateTemplate' => $activeCertificateTemplate,
+            'recentAnnouncements' => $recentAnnouncements,
+            'surveyCompletedByStudent' => $surveyCompletedByStudent,
+            'turmaLessons' => $turmaLessons,
+        ], $attendanceSheet));
     }
 
     public function storeAnnouncement(StoreCourseClassAnnouncementRequest $request, CourseClass $turma): RedirectResponse
@@ -212,7 +217,7 @@ class CourseClassCrudController extends Controller
 
         $refererPath = parse_url((string) $request->headers->get('Referer'), PHP_URL_PATH) ?? '';
         $redirectRoute = str_contains($refererPath, '/ficha-presenca')
-            ? route('admin.turmas.ficha-presenca', [
+            ? route('admin.turmas.show', [
                 'turma' => $turma,
                 'date' => $data['reference_date'] ?? now()->toDateString(),
                 'tab' => 'avisos',
@@ -400,7 +405,29 @@ class CourseClassCrudController extends Controller
         return response()->json($results);
     }
 
-    public function attendanceSheet(Request $request, CourseClass $turma): View
+    public function attendanceSheet(Request $request, CourseClass $turma): RedirectResponse
+    {
+        $rawTab = strtolower(trim((string) $request->query('tab', '')));
+        if ($rawTab === '') {
+            $rawTab = strtolower(trim((string) $request->query('amp;tab', 'chamadas')));
+        }
+
+        $tab = str_starts_with($rawTab, 'avisos') ? 'avisos' : 'chamadas';
+
+        return redirect()->route('admin.turmas.show', array_filter([
+            'turma' => $turma,
+            'tab' => $tab,
+            'date' => $request->query('date') ?: null,
+            'lesson' => $request->query('lesson') ?: null,
+        ], fn ($v) => $v !== null && $v !== ''));
+    }
+
+    /**
+     * Dados da chamada por aula (hub da turma / aba Chamadas).
+     *
+     * @return array<string, mixed>
+     */
+    private function prepareAttendanceSheetContext(Request $request, CourseClass $turma): array
     {
         $dateInput = Carbon::parse($request->string('date')->toString() ?: now()->toDateString())->toDateString();
 
@@ -416,8 +443,6 @@ class CourseClassCrudController extends Controller
             ->values();
 
         $studentIds = $enrollments->pluck('student_id');
-
-        $turma->loadMissing(['course:id,name']);
 
         $lessons = ClassLesson::orderedForCourseClass((int) $turma->id);
 
@@ -467,37 +492,49 @@ class CourseClassCrudController extends Controller
             ? ($lessonActiveLesson->date?->toDateString() ?? $dateInput)
             : $dateInput;
 
-        $breadcrumbs = [
-            ['label' => 'Painel', 'href' => route('admin.dashboard')],
-            ['label' => 'Turmas', 'href' => route('admin.turmas.index')],
-            ['label' => 'Triagem', 'href' => route('admin.turmas.show', $turma)],
-            ['label' => 'Chamadas por aula'],
+        $lessonAttendanceFlags = [];
+        if ($lessonSheetLessons->isNotEmpty() && $studentIds->isNotEmpty()) {
+            $rows = Attendance::query()
+                ->where('course_id', $turma->course_id)
+                ->whereIn('class_lesson_id', $lessonSheetLessons->pluck('id'))
+                ->whereIn('student_id', $studentIds)
+                ->get(['class_lesson_id', 'is_present']);
+
+            foreach ($lessonSheetLessons as $lessonRow) {
+                $lessonAttendanceFlags[(int) $lessonRow->id] = [
+                    'has' => false,
+                    'present' => 0,
+                    'total' => 0,
+                ];
+            }
+
+            foreach ($rows as $row) {
+                $lid = (int) $row->class_lesson_id;
+                if (! isset($lessonAttendanceFlags[$lid])) {
+                    continue;
+                }
+                $lessonAttendanceFlags[$lid]['has'] = true;
+                $lessonAttendanceFlags[$lid]['total']++;
+                if ($row->is_present) {
+                    $lessonAttendanceFlags[$lid]['present']++;
+                }
+            }
+        }
+
+        return [
+            'date' => $date,
+            'attendanceEnrollments' => $enrollments,
+            'lessons' => $lessons,
+            'authStaffCanOverrideAttendance' => $authStaffCanOverrideAttendance,
+            'lessonSheetLessons' => $lessonSheetLessons,
+            'lessonActiveLesson' => $lessonActiveLesson,
+            'lessonSheetMeta' => $lessonSheetMeta,
+            'lessonHasAttendance' => $lessonHasAttendance,
+            'lessonCanManage' => $lessonCanManage,
+            'lessonAttendanceByStudent' => $lessonAttendanceByStudent,
+            'lessonActiveMeta' => $lessonActiveMeta,
+            'lessonAttendanceFlags' => $lessonAttendanceFlags,
         ];
-
-        $recentAnnouncements = CourseClassAnnouncement::query()
-            ->where('course_class_id', $turma->id)
-            ->with('createdBy:id,name')
-            ->withCount('deliveries')
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get();
-
-        return view('admin.course-classes.attendance-sheet', compact(
-            'turma',
-            'date',
-            'enrollments',
-            'breadcrumbs',
-            'recentAnnouncements',
-            'lessons',
-            'authStaffCanOverrideAttendance',
-            'lessonSheetLessons',
-            'lessonActiveLesson',
-            'lessonSheetMeta',
-            'lessonHasAttendance',
-            'lessonCanManage',
-            'lessonAttendanceByStudent',
-            'lessonActiveMeta'
-        ));
     }
 
     public function storeAttendanceSheet(Request $request, CourseClass $turma): RedirectResponse
@@ -552,10 +589,10 @@ class CourseClassCrudController extends Controller
         }
 
         return redirect()
-            ->route('admin.turmas.ficha-presenca', [
+            ->route('admin.turmas.show', [
                 'turma' => $turma,
-                'date' => $classDate,
                 'tab' => 'chamadas',
+                'date' => $classDate,
                 'lesson' => $lesson->id,
             ])
             ->with('success', 'Chamada da aula salva com sucesso.');
@@ -597,10 +634,10 @@ class CourseClassCrudController extends Controller
             : 'Não havia presença registrada para esta aula.';
 
         return redirect()
-            ->route('admin.turmas.ficha-presenca', [
+            ->route('admin.turmas.show', [
                 'turma' => $turma,
-                'date' => $lesson->date?->toDateString() ?? now()->toDateString(),
                 'tab' => 'chamadas',
+                'date' => $lesson->date?->toDateString() ?? now()->toDateString(),
                 'lesson' => $lesson->id,
             ])
             ->with('success', $message);

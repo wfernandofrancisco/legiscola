@@ -1,5 +1,6 @@
 @php
-    $turmaTab = in_array(request()->query('tab'), ['resumo', 'avisos', 'matriculas', 'quizzes'], true)
+    $allowedTabs = ['resumo', 'aulas', 'chamadas', 'matriculas', 'avisos', 'quizzes'];
+    $turmaTab = in_array(request()->query('tab'), $allowedTabs, true)
         ? request()->query('tab')
         : 'resumo';
 
@@ -9,74 +10,221 @@
         $turmaTab = 'avisos';
     } elseif (request()->filled('search') || request()->filled('filter_status') || $errors->hasAny(['student_id', 'student_search', 'enrollment_status', 'course_class_id', 'status'])) {
         $turmaTab = 'matriculas';
+    } elseif ($errors->hasAny(['lesson_id', 'present_students']) || request()->filled('lesson')) {
+        if (! in_array($turmaTab, ['avisos', 'matriculas', 'quizzes'], true)) {
+            $turmaTab = 'chamadas';
+        }
     }
 
-    $tabUrl = fn (string $tab) => route('admin.turmas.show', array_merge(['turma' => $turma], request()->except('page'), ['tab' => $tab]));
+    $tabUrl = function (string $tab) use ($turma): string {
+        $params = ['turma' => $turma, 'tab' => $tab];
+        if ($tab === 'chamadas') {
+            if (request()->filled('date')) {
+                $params['date'] = request('date');
+            }
+            if (request()->filled('lesson')) {
+                $params['lesson'] = request('lesson');
+            }
+        }
+        if ($tab === 'matriculas') {
+            if (request()->filled('search')) {
+                $params['search'] = request('search');
+            }
+            if (request()->filled('filter_status')) {
+                $params['filter_status'] = request('filter_status');
+            }
+        }
+
+        return route('admin.turmas.show', $params);
+    };
+
+    $hubTabs = [
+        'resumo' => 'Resumo',
+        'aulas' => 'Aulas',
+        'chamadas' => 'Chamadas',
+        'matriculas' => 'Matrículas',
+        'avisos' => 'Avisos',
+        'quizzes' => 'Quizzes',
+    ];
 @endphp
 
 <x-layouts.admin>
-    <x-slot name="title">Triagem da Turma</x-slot>
+    <x-slot name="title">{{ $turma->name }}</x-slot>
     <x-breadcrumb :items="$breadcrumbs ?? []" />
 
-    <x-page-header :title="'Triagem - ' . $turma->name" :subtitle="'Curso: ' . ($turma->course?->name ?? '—')" />
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Gestão da turma</p>
+            <h1 class="mt-1 text-pretty text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">{{ $turma->name }}</h1>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Curso: {{ $turma->course?->name ?? '—' }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('admin.turmas.edit', $turma) }}"
+               class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">
+                Editar dados
+            </a>
+            <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
+               class="inline-flex min-h-11 items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-[opacity,transform] duration-150 hover:opacity-95 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                Nova aula
+            </a>
+        </div>
+    </div>
 
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div class="flex flex-wrap gap-1 border-b border-gray-200 px-2 pt-2 dark:border-gray-700" role="tablist">
-            <a href="{{ $tabUrl('resumo') }}" role="tab" aria-selected="{{ $turmaTab === 'resumo' ? 'true' : 'false' }}"
-                class="rounded-t-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 {{ $turmaTab === 'resumo' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                Resumo
-            </a>
-            <a href="{{ $tabUrl('avisos') }}" role="tab" aria-selected="{{ $turmaTab === 'avisos' ? 'true' : 'false' }}"
-                class="rounded-t-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 {{ $turmaTab === 'avisos' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                Avisos
-            </a>
-            <a href="{{ $tabUrl('matriculas') }}" role="tab" aria-selected="{{ $turmaTab === 'matriculas' ? 'true' : 'false' }}"
-                class="rounded-t-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 {{ $turmaTab === 'matriculas' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                Matrículas
-            </a>
-            <a href="{{ $tabUrl('quizzes') }}" role="tab" aria-selected="{{ $turmaTab === 'quizzes' ? 'true' : 'false' }}"
-                class="rounded-t-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 {{ $turmaTab === 'quizzes' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                Quizzes
-            </a>
+    <div class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur dark:border-slate-700 dark:bg-slate-800/95" role="tablist" aria-label="Seções da turma">
+            <div class="flex gap-1 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                @foreach ($hubTabs as $tabKey => $tabLabel)
+                    <a href="{{ $tabUrl($tabKey) }}"
+                       role="tab"
+                       id="tab-{{ $tabKey }}"
+                       aria-selected="{{ $turmaTab === $tabKey ? 'true' : 'false' }}"
+                       @class([
+                           'shrink-0 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:scale-[0.98]',
+                           'border-b-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300' => $turmaTab === $tabKey,
+                           'border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200' => $turmaTab !== $tabKey,
+                       ])>
+                        {{ $tabLabel }}
+                    </a>
+                @endforeach
+            </div>
         </div>
 
         {{-- Aba: Resumo --}}
         @if ($turmaTab === 'resumo')
-        <div class="p-4 sm:p-6">
-            <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">Indicadores da turma; use as outras abas para avisos e gestão de alunos.</p>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Matrículas</p>
-                    <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ $summary['total'] }}</p>
+        <div class="p-4 sm:p-6" role="tabpanel" aria-labelledby="tab-resumo">
+            <p class="mb-4 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                Tudo da turma em um só lugar. Use as abas para aulas, chamadas, matrículas, avisos e quizzes.
+            </p>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Matrículas</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{{ $summary['total'] }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Inscritos</p>
-                    <p class="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $summary['inscrito'] }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Inscritos</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">{{ $summary['inscrito'] }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Cursando</p>
-                    <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $summary['cursando'] }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Cursando</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{{ $summary['cursando'] }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Concluídos</p>
-                    <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $summary['concluido'] }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Concluídos</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{{ $summary['concluido'] }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Desistiram</p>
-                    <p class="mt-1 text-2xl font-bold text-rose-600 dark:text-rose-400">{{ $summary['desistido'] }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Desistiram</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-rose-600 dark:text-rose-400">{{ $summary['desistido'] }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/50">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Baixa presença</p>
-                    <p class="mt-1 text-2xl font-bold text-slate-600 dark:text-slate-300">{{ $summary['baixa_presenca'] }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Aulas</p>
+                    <p class="mt-1 text-2xl font-bold tabular-nums text-slate-600 dark:text-slate-300">{{ ($turmaLessons ?? collect())->count() }}</p>
                 </div>
             </div>
-            <p class="mt-6 text-sm text-gray-600 dark:text-gray-400">
-                <a href="{{ route('admin.turmas.show', $turma) }}?tab=quizzes"
-                    class="font-semibold text-indigo-600 underline decoration-indigo-400/60 underline-offset-2 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
-                    Abrir aba Quizzes
+
+            <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <a href="{{ $tabUrl('aulas') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Aulas</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Cadastre e edite o calendário da turma.</p>
                 </a>
-                — definir quando os alunos podem responder (vínculos feitos na tela de cada quiz).
-            </p>
+                <a href="{{ $tabUrl('chamadas') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Chamadas</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lance presença por aula.</p>
+                </a>
+                <a href="{{ $tabUrl('matriculas') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Matrículas</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Alunos, status e certificados.</p>
+                </a>
+                <a href="{{ $tabUrl('avisos') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Avisos</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Comunique a turma por e-mail ou SMS.</p>
+                </a>
+            </div>
+        </div>
+        @endif
+
+        {{-- Aba: Aulas --}}
+        @if ($turmaTab === 'aulas')
+        <div class="p-4 sm:p-6" role="tabpanel" aria-labelledby="tab-aulas">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">Aulas desta turma</h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Cadastre aqui; a chamada usa estas aulas.</p>
+                </div>
+                <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
+                   class="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-[opacity,transform] duration-150 hover:opacity-95 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                    Nova aula
+                </a>
+            </div>
+
+            @if (($turmaLessons ?? collect())->isEmpty())
+                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center dark:border-slate-600 dark:bg-slate-900/40">
+                    <p class="font-semibold text-slate-800 dark:text-slate-100">Nenhuma aula ainda</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Crie a primeira aula para liberar chamadas.</p>
+                    <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
+                       class="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Criar aula</a>
+                </div>
+            @else
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-600">
+                    <table class="w-full min-w-[36rem] text-left text-sm">
+                        <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Aula</th>
+                                <th class="px-4 py-3 font-semibold">Data / horário</th>
+                                <th class="px-4 py-3 font-semibold">Modalidade</th>
+                                <th class="px-4 py-3 text-right font-semibold">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                            @foreach ($turmaLessons as $lessonRow)
+                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-900 dark:text-white">{{ $lessonRow->title }}</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-700 dark:text-slate-300">
+                                        <p>{{ $lessonRow->date?->format('d/m/Y') ?? '—' }}</p>
+                                        <p class="text-xs text-slate-500">
+                                            {{ $lessonRow->start_time ? substr((string) $lessonRow->start_time, 0, 5) : '--:--' }}
+                                            às
+                                            {{ $lessonRow->end_time ? substr((string) $lessonRow->end_time, 0, 5) : '--:--' }}
+                                        </p>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <x-badge :color="$lessonRow->is_online ? 'blue' : 'green'" :text="$lessonRow->is_online ? 'Online' : 'Presencial'" />
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex flex-wrap items-center justify-end gap-2">
+                                            <a href="{{ route('admin.turmas.show', ['turma' => $turma, 'tab' => 'chamadas', 'lesson' => $lessonRow->id, 'date' => $lessonRow->date?->format('Y-m-d')]) }}#chamada-aberta"
+                                               class="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                                                Abrir chamada
+                                            </a>
+                                            <a href="{{ route('admin.aulas.edit', $lessonRow) }}"
+                                               class="inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                                                Editar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- Aba: Chamadas --}}
+        @if ($turmaTab === 'chamadas')
+        <div class="p-4 sm:p-6" role="tabpanel" aria-labelledby="tab-chamadas">
+            @if (($lessonSheetLessons ?? collect())->isEmpty())
+                <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+                    <p class="font-semibold">Cadastre aulas para lançar presença</p>
+                    <p class="mt-1 text-xs opacity-90">A chamada fica ligada a cada aula. Vá em <strong>Aulas</strong> e crie a primeira.</p>
+                    <a href="{{ $tabUrl('aulas') }}" class="mt-3 inline-flex rounded-lg bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800">Ir para aulas</a>
+                </div>
+            @else
+                @include('admin.course-classes.includes._attendance-sheet-chamadas-lesson')
+            @endif
         </div>
         @endif
 

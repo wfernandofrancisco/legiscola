@@ -1,7 +1,7 @@
 <x-layouts.admin>
     <x-slot name="title">Turmas</x-slot>
     <x-breadcrumb :items="$breadcrumbs ?? []" />
-    <x-page-header title="Turmas" subtitle="Gerencie as turmas dos cursos." :action-href="route('admin.turmas.create')" action-text="Nova Turma" />
+    <x-page-header title="Turmas" subtitle="Abra a turma para gerenciar aulas, chamadas, matrículas e avisos em um só lugar." :action-href="route('admin.turmas.create')" action-text="Nova Turma" />
 
     <form method="GET" action="{{ route('admin.turmas.index') }}" class="mb-6">
         <x-filter-panel title="Pesquisa e filtros" subtitle="Filtre por nome e status."
