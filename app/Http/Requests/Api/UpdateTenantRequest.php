@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use App\Enums\TenantModulosPlano;
 use App\Models\Tenant;
+use App\Support\BrazilianStates;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -49,7 +50,7 @@ class UpdateTenantRequest extends FormRequest
             'complemento' => ['nullable', 'string', 'max:255'],
             'bairro' => ['nullable', 'string', 'max:100'],
             'cidade' => ['nullable', 'string', 'max:100'],
-            'estado' => ['nullable', 'string', 'size:2'],
+            'estado' => ['sometimes', 'required', 'string', Rule::in(BrazilianStates::codes())],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'codigo_ibge_municipio' => ['nullable', 'string', 'max:20'],
@@ -73,12 +74,19 @@ class UpdateTenantRequest extends FormRequest
                 'cnpj' => preg_replace('/\D/', '', $this->cnpj),
             ]);
         }
+
+        if ($this->estado) {
+            $this->merge([
+                'estado' => BrazilianStates::normalize($this->estado),
+            ]);
+        }
     }
 
     public function attributes(): array
     {
         return [
             'name' => 'nome',
+            'estado' => 'UF',
             'slug' => 'slug',
             'domain' => 'domínio',
             'description' => 'descrição',

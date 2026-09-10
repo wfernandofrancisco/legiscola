@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-favicon />
     <title>{{ $title ?? 'Admin' }} — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -152,6 +153,18 @@
                     </svg>
                     Usuários
                 </a>
+
+                @if (\App\Models\CatalogLicense::query()->forTenant(\App\Support\TenantContext::getTenantId())->exists())
+                    <a href="{{ route('admin.catalogo-regional.index') }}"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                              {{ request()->routeIs('admin.catalogo-regional*') ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-white' }}">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                        </svg>
+                        Conteúdo regional
+                    </a>
+                @endif
 
                 <a href="{{ route('admin.cursos.index') }}"
                     class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition

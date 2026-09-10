@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\CentralAuthController;
-use App\Http\Controllers\Auth\GlobalPrivacyTermAcceptanceController;
+use App\Http\Controllers\Auth\DirectorAuthController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\GlobalPrivacyTermAcceptanceController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -35,6 +36,21 @@ Route::prefix('login')
 Route::post('logout/central', [CentralAuthController::class, 'logout'])
     ->middleware('auth')
     ->name('central.logout');
+
+// =====================================================================
+// DIRETOR LOGIN — /login/diretor — Diretor Regional (abrangência por UF)
+// =====================================================================
+Route::prefix('login')
+    ->name('diretor.')
+    ->middleware('guest')
+    ->group(function () {
+        Route::get('diretor', [DirectorAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('diretor', [DirectorAuthController::class, 'login'])->name('login.store');
+    });
+
+Route::post('logout/diretor', [DirectorAuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('diretor.logout');
 
 // Aceite do termo LGPD global (após publicação de nova versão na Central)
 Route::middleware(['auth'])->group(function (): void {

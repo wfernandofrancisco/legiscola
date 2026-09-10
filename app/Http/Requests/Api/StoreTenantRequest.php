@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use App\Enums\TenantModulosPlano;
 use App\Models\Tenant;
+use App\Support\BrazilianStates;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -47,7 +48,7 @@ class StoreTenantRequest extends FormRequest
             'complemento' => ['nullable', 'string', 'max:255'],
             'bairro' => ['nullable', 'string', 'max:100'],
             'cidade' => ['nullable', 'string', 'max:100'],
-            'estado' => ['nullable', 'string', 'size:2'],
+            'estado' => ['required', 'string', Rule::in(BrazilianStates::codes())],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'codigo_ibge_municipio' => ['nullable', 'string', 'max:20'],
@@ -75,6 +76,12 @@ class StoreTenantRequest extends FormRequest
                 'cnpj' => preg_replace('/\D/', '', $this->cnpj),
             ]);
         }
+
+        if ($this->estado) {
+            $this->merge([
+                'estado' => BrazilianStates::normalize($this->estado),
+            ]);
+        }
     }
 
     public function attributes(): array
@@ -95,6 +102,7 @@ class StoreTenantRequest extends FormRequest
             'phone' => 'telefone',
             'website' => 'site',
             'cep' => 'CEP',
+            'estado' => 'UF',
             'codigo_ibge_municipio' => 'codigo IBGE do municipio',
             'codigo_municipio_estban' => 'codigo municipio ESTBAN',
             'codigo_municipio_caged' => 'codigo IBGE do municipio (Caged)',

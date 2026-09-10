@@ -12,6 +12,7 @@
     <!-- Meta tags -->
     <meta name="description" content="Painel Central de Administrativo">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-favicon />
 
     @stack('styles')
 </head>

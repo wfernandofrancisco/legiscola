@@ -5,13 +5,14 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // -----------------------------------------------------------------------
         // Permissions
@@ -113,6 +114,15 @@ class RolesAndPermissionsSeeder extends Seeder
         $tenantProfessor = Role::firstOrCreate(['name' => 'tenant_professor', 'guard_name' => 'web']);
         $tenantProfessor->givePermissionTo([]);
         $tenantProfessor->update(['type' => 'tenant']);
+
+        // Diretor Regional — camada entre a Central e os clientes; abrangência por UF, não por tenant.
+        // A autorização efetiva vem de user_type + policies; a role serve para o login e para o RBAC da Central.
+        $tenantDirector = Role::firstOrCreate(['name' => 'tenant_director', 'guard_name' => 'web']);
+        $tenantDirector->givePermissionTo([
+            'reports.view',
+            'reports.export',
+        ]);
+        $tenantDirector->update(['type' => 'central']);
 
         $this->command->info('Roles e permissões criadas com sucesso!');
     }

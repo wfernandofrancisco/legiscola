@@ -83,6 +83,16 @@ class CertificateController extends Controller
         $studentName = (string) data_get($certificate->snapshot, 'student_name', $certificate->student?->user?->name ?? 'Aluno');
         $palestranteNome = (string) data_get($certificate->snapshot, 'palestrante_nome', $studentName);
         $palestranteCpf = (string) data_get($certificate->snapshot, 'palestrante_cpf', '');
+        $certificate->loadMissing(['course.catalogLicense', 'event.catalogLicense']);
+        $professorNome = trim((string) data_get($certificate->snapshot, 'professor_nome', ''));
+        if ($professorNome === '') {
+            $professorNome = trim((string) (
+                $certificate->course?->catalogLicense?->professor_nome
+                ?? $certificate->event?->palestrante_nome
+                ?? $certificate->event?->catalogLicense?->professor_nome
+                ?? data_get($certificate->snapshot, 'palestrante_nome', '')
+            ));
+        }
         $isPalestrante = (string) data_get($certificate->snapshot, 'tipo_emissao', '') === 'palestrante'
             || (bool) data_get($certificate->snapshot, 'is_palestrante', false);
         $courseName = (string) data_get(
@@ -114,6 +124,7 @@ class CertificateController extends Controller
             '{{aluno_nome}}' => $displayName,
             '{{palestrante_nome}}' => $palestranteNome,
             '{{palestrante_cpf}}' => $palestranteCpf,
+            '{{professor_nome}}' => $professorNome,
             '{{curso_nome}}' => $courseName,
             '{{evento_nome}}' => $eventoNome,
             '{{carga_horaria}}' => $workload.' horas',
@@ -126,6 +137,7 @@ class CertificateController extends Controller
             '@{{aluno_nome}}' => $displayName,
             '@{{palestrante_nome}}' => $palestranteNome,
             '@{{palestrante_cpf}}' => $palestranteCpf,
+            '@{{professor_nome}}' => $professorNome,
             '@{{curso_nome}}' => $courseName,
             '@{{evento_nome}}' => $eventoNome,
             '@{{carga_horaria}}' => $workload.' horas',
@@ -153,7 +165,9 @@ class CertificateController extends Controller
             $content = '<div style="text-align:center; padding:80px 60px; font-family: DejaVu Sans, Arial, sans-serif;">
                 <p style="font-size:20px; margin-top:40px;">Certificamos que</p>
                 <p style="font-size:30px; font-family: DejaVu Serif, Times New Roman, serif; font-style:italic; letter-spacing:1px; font-weight:bold; margin:18px 0;">'.e($studentName).'</p>
-                <p style="font-size:18px; line-height:1.6;">participou do evento <strong>'.e($eventoNome !== '' ? $eventoNome : $courseName).'</strong>.</p>
+                <p style="font-size:18px; line-height:1.6;">participou do evento <strong>'.e($eventoNome !== '' ? $eventoNome : $courseName).'</strong>'
+                .($professorNome !== '' ? ', ministrado por <strong>'.e($professorNome).'</strong>' : '')
+                .'.</p>
                 <p style="font-size:16px; margin-top:22px;">Data de emissão: <strong>'.e($conclusionDate).'</strong>, em <strong>'.e($tenantCityState).'</strong>.</p>
                 <p style="margin-top:30px; font-size:14px;">Código de validação: '.e($certificate->validation_hash).'</p>
                 <p style="font-size:15px; margin-top:26px;">'.e($schoolName).'</p>
@@ -162,7 +176,9 @@ class CertificateController extends Controller
             $content = '<div style="text-align:center; padding:80px 60px; font-family: DejaVu Sans, Arial, sans-serif;">
                 <p style="font-size:20px; margin-top:40px;">Certificamos que</p>
                 <p style="font-size:30px; font-family: DejaVu Serif, Times New Roman, serif; font-style:italic; letter-spacing:1px; font-weight:bold; margin:18px 0;">'.e($studentName).'</p>
-                <p style="font-size:18px; line-height:1.6;">concluiu o curso <strong>'.e($courseName).'</strong> com carga horária de <strong>'.e($workload).' horas</strong>.</p>
+                <p style="font-size:18px; line-height:1.6;">concluiu o curso <strong>'.e($courseName).'</strong> com carga horária de <strong>'.e($workload).' horas</strong>'
+                .($professorNome !== '' ? ', sob a docência de <strong>'.e($professorNome).'</strong>' : '')
+                .'.</p>
                 <p style="font-size:16px; margin-top:22px;">Conclusão em <strong>'.e($conclusionDate).'</strong>, em <strong>'.e($tenantCityState).'</strong>.</p>
                 <p style="margin-top:30px; font-size:14px;">Código de validação: '.e($certificate->validation_hash).'</p>
                 <p style="font-size:15px; margin-top:26px;">'.e($schoolName).'</p>

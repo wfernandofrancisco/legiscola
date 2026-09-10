@@ -9,7 +9,7 @@ use App\Models\ClassLesson;
 use App\Models\Enrollment;
 use App\Models\Student;
 use App\Support\AlunoProgress;
-use App\Support\YoutubeId;
+use App\Support\VideoEmbed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -26,13 +26,21 @@ class AulaController extends Controller
         $student = $this->requireStudent();
         $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
 
-        $classLesson->load('courseClass.course');
+        $classLesson->load('courseClass.course', 'catalogLesson');
 
         $courseClass = $classLesson->courseClass;
-        $youtubeId = null;
-        if ($classLesson->video_url && YoutubeId::isYoutube($classLesson->video_url)) {
-            $youtubeId = YoutubeId::fromUrl($classLesson->video_url);
-        }
+
+        // Em aula vinda do catálogo regional, o vídeo mora no item do diretor, não na turma.
+        $videoUrl = $classLesson->effectiveVideoUrl();
+        $videoNative = $classLesson->effectiveVideoIsNative();
+        $videoEmbedUrl = $videoNative ? null : VideoEmbed::embedUrl($videoUrl);
+
+        $materialUrl = $classLesson->effectiveMaterialUrl();
+        $materialName = $classLesson->effectiveMaterialName();
+        // Arquivo local continua saindo pela rota autenticada; material do catálogo é link direto.
+        $materialDownloadRoute = $classLesson->material_file_path
+            ? route('app.aulas.material', $classLesson)
+            : null;
 
         $quizPct = $courseClass ? AlunoProgress::quizCompletionPercent($student, $courseClass) : null;
         $presencePct = $courseClass ? AlunoProgress::attendanceSheetPercent($student, $courseClass) : null;
@@ -50,7 +58,12 @@ class AulaController extends Controller
         return view('aluno.aulas.show', compact(
             'student',
             'classLesson',
-            'youtubeId',
+            'videoUrl',
+            'videoEmbedUrl',
+            'videoNative',
+            'materialUrl',
+            'materialName',
+            'materialDownloadRoute',
             'quizPct',
             'presencePct',
             'canMarkOnlinePresence',

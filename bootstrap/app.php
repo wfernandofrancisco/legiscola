@@ -1,31 +1,32 @@
 <?php
 
 use App\Http\Middleware\ApplyTenantContextFromAuth;
+use App\Http\Middleware\EnsureAcceptedGlobalPrivacyTerm;
 use App\Http\Middleware\EnsureCentralAccess;
+use App\Http\Middleware\EnsureDirectorAccess;
+use App\Http\Middleware\EnsureDocentePortalAccess;
 use App\Http\Middleware\EnsureHasTenant;
+use App\Http\Middleware\EnsureResponsibleManagerAccess;
 use App\Http\Middleware\EnsureResponsiblePortalAccess;
 use App\Http\Middleware\EnsureTenantAccess;
 use App\Http\Middleware\EnsureTenantPortalContext;
-use App\Http\Middleware\EnsureDocentePortalAccess;
-use App\Http\Middleware\EnsureAcceptedGlobalPrivacyTerm;
-use App\Http\Middleware\EnsureResponsibleManagerAccess;
 use App\Http\Middleware\EnsureUserType;
 use App\Http\Middleware\SetTenantContext;
 use App\Models\User;
 use App\Support\TenantWebEntryUrls;
 use App\Support\UniqueConstraintUserMessage;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -46,6 +47,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('central.login');
             }
 
+            if ($request->is('diretor') || $request->is('diretor/*')) {
+                return route('diretor.login');
+            }
+
             return route('tenant.login');
         });
 
@@ -58,6 +63,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
                 return route('central.dashboard');
+            }
+
+            if (method_exists($user, 'isTenantDirector') && $user->isTenantDirector()) {
+                return route('diretor.dashboard');
             }
 
             if ($user->hasTenantRole(User::TYPE_TENANT_ADMIN)) {
@@ -83,6 +92,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => SetTenantContext::class,
             'has-tenant' => EnsureHasTenant::class,
             'central-access' => EnsureCentralAccess::class,
+            'director-access' => EnsureDirectorAccess::class,
             'tenant-access' => EnsureTenantAccess::class,
             'tenant.api-context' => ApplyTenantContextFromAuth::class,
             'tenant.portal' => EnsureTenantPortalContext::class,
@@ -108,7 +118,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->withErrors([$mapped['field'] => $mapped['message']]);
         });
 
-        $exceptions->renderable(function (\Throwable $e, Request $request) {
+        $exceptions->renderable(function (Throwable $e, Request $request) {
             if ($e instanceof AuthorizationException) {
                 return null;
             }

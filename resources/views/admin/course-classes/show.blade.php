@@ -478,6 +478,10 @@
                                                 value="{{ $turma->course?->name ?? 'Curso' }}">
                                             <input type="hidden" name="snapshot[workload_hours]"
                                                 value="{{ (int) ($turma->course?->workload_hours ?? 0) }}">
+                                            <input type="hidden" name="snapshot[professor_nome]"
+                                                value="{{ $turma->course?->catalogLicense?->professor_nome
+                                                    ?? $turma->teachers?->pluck('full_name')->filter()->implode(', ')
+                                                    ?? '' }}">
                                             <input type="hidden" name="redirect_to_download" value="1">
                                         </form>
                                     @endif

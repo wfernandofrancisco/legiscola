@@ -27,6 +27,7 @@ class InscricaoController extends Controller
         $now = now();
 
         $courseClasses = CourseClass::query()
+            ->visibleOnPortal()
             ->with(['course'])
             ->withCount([
                 'enrollments as matriculas_count' => fn ($query) => $query->whereIn('status', ['inscrito', 'cursando', 'concluido', 'baixa_presenca']),
@@ -40,6 +41,7 @@ class InscricaoController extends Controller
             ->get();
 
         $events = Event::query()
+            ->visibleOnPortal()
             ->where('allow_online_registration', true)
             ->where('date_time', '>=', $now->copy()->startOfDay())
             ->where(function ($query) use ($now): void {

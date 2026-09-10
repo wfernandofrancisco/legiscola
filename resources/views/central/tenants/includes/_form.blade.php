@@ -83,7 +83,10 @@
                 <div class="col-span-2">
                     <x-form.input name="cidade" label="Cidade" :value="$tenant?->cidade ?? old('cidade')" />
                 </div>
-                <x-form.input name="estado" label="UF" maxlength="2" :value="$tenant?->estado ?? old('estado')" />
+                <x-form.select name="estado" label="UF" required placeholder="Selecione"
+                    :options="\App\Support\BrazilianStates::options()"
+                    :selected="$tenant?->estado ?? old('estado')"
+                    hint="Define qual diretor regional acompanha este cliente." />
                 <x-form.input name="codigo_ibge_municipio" label="Codigo IBGE do municipio (7 digitos; Receita, etc.)"
                     maxlength="20"
                     :value="$tenant?->codigo_ibge_municipio ?? old('codigo_ibge_municipio')"

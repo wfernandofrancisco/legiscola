@@ -2,36 +2,41 @@
 
 namespace App\Providers;
 
-use App\Models\Cnae;
+use App\Models\Attendance;
+use App\Models\CatalogItem;
+use App\Models\CatalogLicense;
 use App\Models\Certificate;
+use App\Models\Cnae;
 use App\Models\CourseClass;
 use App\Models\EmpresaOverride;
 use App\Models\EmpresaRelacao;
 use App\Models\EmpresaRelacaoArquivo;
 use App\Models\EmpresaRelacaoComentario;
 use App\Models\Grade;
-use App\Models\Attendance;
+use App\Models\Quiz;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Quiz;
-use App\Policies\CnaePolicy;
+use App\Policies\AttendancePolicy;
+use App\Policies\CatalogItemPolicy;
+use App\Policies\CatalogLicensePolicy;
 use App\Policies\CertificatePolicy;
+use App\Policies\CnaePolicy;
 use App\Policies\CourseClassPolicy;
 use App\Policies\EmpresaOverridePolicy;
 use App\Policies\EmpresaRelacaoArquivoPolicy;
 use App\Policies\EmpresaRelacaoComentarioPolicy;
 use App\Policies\EmpresaRelacaoPolicy;
 use App\Policies\GradePolicy;
-use App\Policies\AttendancePolicy;
 use App\Policies\PermissionPolicy;
+use App\Policies\QuizPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\TenantPolicy;
 use App\Policies\UserPolicy;
-use App\Policies\QuizPolicy;
 use App\Support\TenantUrl;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -57,6 +62,8 @@ class AuthServiceProvider extends ServiceProvider
         Certificate::class => CertificatePolicy::class,
         CourseClass::class => CourseClassPolicy::class,
         Quiz::class => QuizPolicy::class,
+        CatalogItem::class => CatalogItemPolicy::class,
+        CatalogLicense::class => CatalogLicensePolicy::class,
     ];
 
     /**
@@ -67,7 +74,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         VerifyEmail::createUrlUsing(function (User $notifiable): string {
-            $verificationUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            $verificationUrl = URL::temporarySignedRoute(
                 'verification.verify',
                 now()->addMinutes(60),
                 [

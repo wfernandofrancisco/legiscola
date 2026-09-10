@@ -7,6 +7,7 @@ use App\Support\Geo;
 use App\Support\TenantUrl;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,8 @@ class Event extends Model
 
     protected $fillable = [
         'tenant_id',
+        'catalog_item_id',
+        'catalog_license_id',
         'title',
         'description',
         'allow_online_registration',
@@ -85,6 +88,35 @@ class Event extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function catalogItem(): BelongsTo
+    {
+        return $this->belongsTo(CatalogItem::class);
+    }
+
+    public function catalogLicense(): BelongsTo
+    {
+        return $this->belongsTo(CatalogLicense::class);
+    }
+
+    /**
+     * Evento próprio da câmara sempre aparece; evento do catálogo some depois de exibir_ate.
+     */
+    public function scopeVisibleOnPortal(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q): void {
+            $q->whereNull('catalog_license_id')
+                ->orWhereHas('catalogLicense', fn (Builder $l) => $l->stillVisible());
+        });
+    }
+
+    /**
+     * Evento agendado a partir de uma palestra liberada pela direção regional.
+     */
+    public function isFromCatalog(): bool
+    {
+        return $this->catalog_item_id !== null;
     }
 
     /**

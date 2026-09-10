@@ -66,6 +66,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
         $now = CarbonImmutable::now();
 
         return Event::query()
+            ->visibleOnPortal()
             ->where('date_time', '>=', $now)
             ->latest('date_time')
             ->limit($limit)
@@ -75,6 +76,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function paginateEvents(int $perPage): LengthAwarePaginator
     {
         return Event::query()
+            ->visibleOnPortal()
             ->latest('date_time')
             ->paginate($perPage)
             ->withQueryString();
@@ -82,7 +84,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
 
     public function findEvent(int $id): ?Event
     {
-        return Event::query()->find($id);
+        return Event::query()->visibleOnPortal()->find($id);
     }
 
     public function paginateActiveCredenciamentos(int $perPage, ?string $pageName = null): LengthAwarePaginator
@@ -127,6 +129,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function homeEnrollmentTurmas(int $limit): Collection
     {
         return CourseClass::query()
+            ->visibleOnPortal()
             ->where('status', 'inscricao')
             ->with(['course.admin', 'teachers' => fn ($t) => $t->orderBy('course_class_teacher.sort_order')])
             ->withCount([
@@ -140,6 +143,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function homeEmAndamentoTurmas(int $limit): Collection
     {
         return CourseClass::query()
+            ->visibleOnPortal()
             ->where('status', 'em_andamento')
             ->with(['course.admin', 'teachers' => fn ($t) => $t->orderBy('course_class_teacher.sort_order')])
             ->withCount([
@@ -153,6 +157,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function coursesWithOfferingsPaginated(int $perPage): LengthAwarePaginator
     {
         return Course::query()
+            ->visibleOnPortal()
             ->where(function ($q): void {
                 $q->where('status', 'ativo')
                     ->orWhereHas('courseClasses', fn ($cc) => $cc->where('status', '!=', 'cancelado'));
@@ -175,6 +180,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function concludedCourseClassesPaginated(int $perPage): LengthAwarePaginator
     {
         return CourseClass::query()
+            ->visibleOnPortal()
             ->where('status', 'concluido')
             ->with(['course.admin', 'teachers' => fn ($t) => $t->orderBy('course_class_teacher.sort_order')])
             ->withCount([
@@ -188,6 +194,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function findCourseForPortal(int $id): ?Course
     {
         return Course::query()
+            ->visibleOnPortal()
             ->where(function ($q): void {
                 $q->where('status', 'ativo')
                     ->orWhereHas('courseClasses', fn ($cc) => $cc->where('status', '!=', 'cancelado'));
@@ -209,6 +216,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     public function relatedActiveCourses(int $excludeCourseId, int $limit): Collection
     {
         return Course::query()
+            ->visibleOnPortal()
             ->where('status', 'ativo')
             ->whereKeyNot($excludeCourseId)
             ->with('admin')
@@ -223,11 +231,13 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
 
         return [
             'alunos' => (int) Student::query()->count(),
-            'cursos' => (int) Course::query()->where('status', 'ativo')->count(),
+            'cursos' => (int) Course::query()->visibleOnPortal()->where('status', 'ativo')->count(),
             'eventos_futuros' => (int) Event::query()
+                ->visibleOnPortal()
                 ->where('date_time', '>=', CarbonImmutable::now())
                 ->count(),
             'turmas_ativas' => (int) CourseClass::query()
+                ->visibleOnPortal()
                 ->whereIn('status', ['inscricao', 'em_andamento', 'cadastrado'])
                 ->count(),
         ];

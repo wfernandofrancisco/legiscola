@@ -1,14 +1,8 @@
 <?php
 
-use App\Http\Controllers\Central\CagedImportController;
-use App\Http\Controllers\Central\CnaeController;
-use App\Http\Controllers\Central\CnaeSinonimoController;
-use App\Http\Controllers\Central\CnpjProcessController;
-use App\Http\Controllers\Central\ComexImportController;
 use App\Http\Controllers\Central\DashboardController;
-use App\Http\Controllers\Central\EstbanImportController;
+use App\Http\Controllers\Central\DirectorController;
 use App\Http\Controllers\Central\GlobalPrivacyTermController;
-use App\Http\Controllers\Central\NaturezaJuridicaController;
 use App\Http\Controllers\Central\PermissionController;
 use App\Http\Controllers\Central\RoleController;
 use App\Http\Controllers\Central\TenantController;
@@ -35,6 +29,10 @@ Route::prefix('central')
         Route::post('roles/{role}/sync-permissions', [RoleController::class, 'syncPermissions'])->name('roles.sync-permissions');
 
         Route::resource('permissions', PermissionController::class);
+
+        Route::resource('directors', DirectorController::class)
+            ->parameters(['directors' => 'director'])
+            ->except(['show']);
 
         Route::resource('tenants', TenantController::class);
 

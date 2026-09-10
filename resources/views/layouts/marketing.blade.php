@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-favicon />
     <meta name="description" content="@yield('meta_description', 'Legiscola — plataforma para Escolas Legislativas: portal público, gestão acadêmica, certificados e conformidade com a LGPD.')">
     <title>@yield('title', config('app.name').' — Escola Legislativa digital')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

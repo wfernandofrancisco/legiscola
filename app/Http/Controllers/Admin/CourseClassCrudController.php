@@ -112,7 +112,9 @@ class CourseClassCrudController extends Controller
     {
         $turma->load([
             'linkedQuizzes' => fn ($q) => $q->orderBy('title'),
-            'course:id,name',
+            'course:id,name,workload_hours,catalog_license_id',
+            'course.catalogLicense:id,professor_nome',
+            'teachers:id,full_name,email',
         ]);
 
         $summary = $this->enrollmentService->statusSummary($turma->id);

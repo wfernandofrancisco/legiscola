@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,8 @@ class Course extends Model
         'workload_hours',
         'status',
         'admin_user_id',
+        'catalog_item_id',
+        'catalog_license_id',
     ];
 
     public function curricula(): HasMany
@@ -60,5 +63,36 @@ class Course extends Model
     public function admin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_user_id');
+    }
+
+    public function catalogItem(): BelongsTo
+    {
+        return $this->belongsTo(CatalogItem::class);
+    }
+
+    public function catalogLicense(): BelongsTo
+    {
+        return $this->belongsTo(CatalogLicense::class);
+    }
+
+    /**
+     * Curso veio do catálogo de um diretor (e não foi criado pela própria câmara).
+     */
+    public function isFromCatalog(): bool
+    {
+        return $this->catalog_license_id !== null;
+    }
+
+    /**
+     * Aparece no portal / listagens de inscrição.
+     *
+     * Conteúdo próprio da câmara sempre aparece. Conteúdo do catálogo some depois de exibir_ate.
+     */
+    public function scopeVisibleOnPortal(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q): void {
+            $q->whereNull('catalog_license_id')
+                ->orWhereHas('catalogLicense', fn (Builder $l) => $l->stillVisible());
+        });
     }
 }

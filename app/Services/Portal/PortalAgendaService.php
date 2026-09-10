@@ -39,6 +39,7 @@ final class PortalAgendaService
         };
 
         $events = Event::query()
+            ->visibleOnPortal()
             ->where('date_time', '>=', $monthStart->startOfDay())
             ->where('date_time', '<=', $monthEnd->endOfDay())
             ->orderBy('date_time')
@@ -58,6 +59,7 @@ final class PortalAgendaService
         }
 
         $turmas = CourseClass::query()
+            ->visibleOnPortal()
             ->where('status', '!=', 'cancelado')
             ->with(['schedules', 'course'])
             ->get();

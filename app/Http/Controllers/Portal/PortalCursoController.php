@@ -96,6 +96,7 @@ class PortalCursoController extends Controller
     {
         abort_unless((int) $turma->tenant_id === TenantContext::getTenantId(), 404);
         abort_unless((int) $turma->course_id === $curso, 404);
+        abort_if($this->catalog->findCourseForPortal($curso) === null, 404);
 
         $studentId = Student::query()
             ->where('user_id', auth()->id())

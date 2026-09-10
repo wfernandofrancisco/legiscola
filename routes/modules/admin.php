@@ -1,26 +1,27 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\PortalContactMessageController;
-use App\Http\Controllers\Admin\NoticiaController;
-use App\Http\Controllers\Admin\ProvaController;
-use App\Http\Controllers\Admin\TenantAdminSettingController;
-use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\CatalogoRegionalController;
 use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\CertificateTemplateController;
-use App\Http\Controllers\Admin\CourseController;
-use App\Http\Controllers\Admin\CourseClassCrudController;
 use App\Http\Controllers\Admin\ClassLessonController;
-use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\CourseClassController;
+use App\Http\Controllers\Admin\CourseClassCrudController;
+use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\NoticiaController;
+use App\Http\Controllers\Admin\PortalContactMessageController;
+use App\Http\Controllers\Admin\ProfessorCredenciamentoController;
+use App\Http\Controllers\Admin\ProvaController;
 use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Admin\SatisfactionSurveyController;
-use App\Http\Controllers\Admin\ProfessorCredenciamentoController;
 use App\Http\Controllers\Admin\SobreEscolaController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentGeolocationController;
 use App\Http\Controllers\Admin\SystemReportController;
 use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Admin\TenantAdminSettingController;
+use App\Http\Controllers\Admin\UserController;
 use App\Livewire\Admin\ConstrutorProvas;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,12 @@ Route::prefix('admin')
         Route::get('contatos-portal', [PortalContactMessageController::class, 'index'])->name('contatos-portal.index');
         Route::get('contatos-portal/{contato}', [PortalContactMessageController::class, 'show'])->name('contatos-portal.show');
         Route::post('contatos-portal/{contato}/responder', [PortalContactMessageController::class, 'reply'])->name('contatos-portal.reply');
+
+        // Conteúdo liberado pela direção regional
+        Route::get('escola/catalogo-regional', [CatalogoRegionalController::class, 'index'])->name('catalogo-regional.index');
+        Route::get('escola/catalogo-regional/{licenca}', [CatalogoRegionalController::class, 'show'])->name('catalogo-regional.show');
+        Route::post('escola/catalogo-regional/{licenca}/turmas', [CatalogoRegionalController::class, 'storeTurma'])->name('catalogo-regional.turmas.store');
+        Route::post('escola/catalogo-regional/{licenca}/eventos', [CatalogoRegionalController::class, 'storeEvento'])->name('catalogo-regional.eventos.store');
 
         Route::resource('escola/cursos', CourseController::class)->parameters(['cursos' => 'course'])->except(['show']);
         Route::get('escola/cursos-busca', [CourseController::class, 'search'])->name('cursos.search');

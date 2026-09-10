@@ -15,40 +15,53 @@
                 </p>
             </header>
 
-            @if ($youtubeId)
+            @if ($videoEmbedUrl)
                 <div class="overflow-hidden rounded-3xl border border-slate-800 bg-black shadow-2xl ring-1 ring-white/5">
                     <div class="aspect-video w-full">
                         <iframe class="h-full w-full"
-                                src="https://www.youtube-nocookie.com/embed/{{ $youtubeId }}?rel=0"
+                                src="{{ $videoEmbedUrl }}?rel=0"
                                 title="Vídeo da aula"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowfullscreen
                                 loading="lazy"></iframe>
                     </div>
                 </div>
-            @elseif ($classLesson->video_url)
-                <div class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-                    O link informado não é um vídeo do YouTube. Peça ao instrutor para usar uma URL do YouTube (youtube.com ou youtu.be).
+            @elseif ($videoNative && $videoUrl)
+                <div class="overflow-hidden rounded-3xl border border-slate-800 bg-black shadow-2xl ring-1 ring-white/5">
+                    <div class="aspect-video w-full">
+                        <video class="h-full w-full" controls preload="metadata" playsinline
+                               src="{{ $videoUrl }}">
+                            Seu navegador não reproduz este vídeo.
+                            <a href="{{ $videoUrl }}" class="text-cyan-300 underline">Baixar o arquivo</a>
+                        </video>
+                    </div>
                 </div>
+            @elseif ($videoUrl)
+                <a href="{{ $videoUrl }}" target="_blank" rel="noopener noreferrer"
+                   class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
+                    Assistir ao vídeo da aula
+                    <span aria-hidden="true">↗</span>
+                </a>
             @else
                 <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 text-sm text-slate-500">Esta aula ainda não tem vídeo cadastrado.</div>
             @endif
 
-            @if ($classLesson->material_file_path)
-                <a href="{{ route('app.aulas.material', $classLesson) }}"
+            @if ($materialDownloadRoute)
+                <a href="{{ $materialDownloadRoute }}"
                    class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
                     Baixar material da aula
-                    @if ($classLesson->material_file_name)
-                        <span class="font-normal text-cyan-300/90">({{ $classLesson->material_file_name }})</span>
+                    @if ($materialName)
+                        <span class="font-normal text-cyan-300/90">({{ $materialName }})</span>
                     @endif
                     <span aria-hidden="true">↓</span>
                 </a>
-            @endif
-
-            @if ($classLesson->material_url)
-                <a href="{{ $classLesson->material_url }}" target="_blank" rel="noopener noreferrer"
+            @elseif ($materialUrl)
+                <a href="{{ $materialUrl }}" target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
-                    Abrir link do material
+                    Abrir material da aula
+                    @if ($materialName)
+                        <span class="font-normal text-cyan-300/90">({{ $materialName }})</span>
+                    @endif
                     <span aria-hidden="true">↗</span>
                 </a>
             @endif

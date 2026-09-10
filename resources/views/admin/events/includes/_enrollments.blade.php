@@ -132,6 +132,7 @@
                         <input type="hidden" name="snapshot[course_name]" value="{{ $event->title }}">
                         <input type="hidden" name="snapshot[evento_nome]" value="{{ $event->title }}">
                         <input type="hidden" name="snapshot[palestrante_nome]" value="{{ $event->palestrante_nome }}">
+                        <input type="hidden" name="snapshot[professor_nome]" value="{{ $event->palestrante_nome ?? $event->catalogLicense?->professor_nome }}">
                         <input type="hidden" name="snapshot[event_id]" value="{{ $event->id }}">
                         <input type="hidden" name="snapshot[workload_hours]" value="0">
                         <input type="hidden" name="redirect_to_download" value="1">

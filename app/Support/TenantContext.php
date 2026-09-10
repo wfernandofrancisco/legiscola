@@ -19,7 +19,9 @@ class TenantContext
 
     public static function syncFromUser(User $user): void
     {
-        if ($user->isSuperAdmin()) {
+        // Super admin e diretor regional não pertencem a um tenant: a abrangência deles é
+        // multi-tenant e é resolvida fora daqui (Central vê tudo, diretor vê DirectorContext).
+        if ($user->isSuperAdmin() || $user->isTenantDirector()) {
             self::clear();
 
             return;

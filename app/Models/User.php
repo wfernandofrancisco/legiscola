@@ -48,6 +48,14 @@ class User extends Authenticatable implements MustVerifyEmail
     /** Docente / professor vinculado ao painel pedagógico (rotas /docente). */
     const TYPE_TENANT_RESPONSIBLE = 'tenant_responsible';
 
+    /**
+     * Diretor regional (rotas /diretor).
+     *
+     * Camada entre o super admin e o tenant_admin: não pertence a um tenant (tenant_id null),
+     * a abrangência vem das UFs em director_ufs. Criado somente pela Central.
+     */
+    const TYPE_TENANT_DIRECTOR = 'tenant_director';
+
     const STATUS_ATIVO = 'ativo';
 
     const STATUS_INATIVO = 'inativo';
@@ -183,6 +191,30 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->user_type === self::TYPE_TENANT_USER;
     }
 
+    public function isTenantDirector(): bool
+    {
+        return $this->user_type === self::TYPE_TENANT_DIRECTOR;
+    }
+
+    /**
+     * UFs sob responsabilidade deste diretor.
+     */
+    public function directorUfs(): HasMany
+    {
+        return $this->hasMany(DirectorUf::class);
+    }
+
+    /**
+     * @return list<string> Siglas das UFs do diretor (ex.: ['SP', 'MG']).
+     */
+    public function directorUfCodes(): array
+    {
+        return $this->directorUfs()
+            ->orderBy('uf')
+            ->pluck('uf')
+            ->all();
+    }
+
     /**
      * Roles Spatie do tenant usam underscore (tenant_admin …) — {@see RolesAndPermissionsSeeder}.
      * Também aceita variantes antigas em hífen.
@@ -282,6 +314,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         if ($this->isSuperAdmin()) {
             return 'central.dashboard';
+        }
+        if ($this->isTenantDirector()) {
+            return 'diretor.dashboard';
         }
         if ($this->hasTenantRole(self::TYPE_TENANT_ADMIN)) {
             return 'admin.dashboard';

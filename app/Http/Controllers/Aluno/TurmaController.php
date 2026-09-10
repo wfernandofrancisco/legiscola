@@ -50,6 +50,7 @@ class TurmaController extends Controller
             ->all();
 
         $availableCourseClasses = CourseClass::query()
+            ->visibleOnPortal()
             ->where('status', 'inscricao')
             ->where('enrollment_start', '<=', now())
             ->where('enrollment_end', '>=', now())
