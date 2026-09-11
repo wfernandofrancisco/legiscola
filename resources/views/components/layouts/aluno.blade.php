@@ -17,36 +17,41 @@
         $initials = '?';
     }
     $nav = [
-        ['label' => 'Início', 'route' => route('app.dashboard'), 'match' => ['app.dashboard']],
-        ['label' => 'Meus cursos', 'route' => route('app.turmas.index'), 'match' => ['app.turmas.*']],
-        ['label' => 'Inscrições', 'route' => route('app.inscricoes.index'), 'match' => ['app.inscricoes.*']],
-        ['label' => 'Quizzes', 'route' => route('app.quizzes.index'), 'match' => ['app.quizzes.*']],
-        ['label' => 'Certificados', 'route' => route('app.certificados.index'), 'match' => ['app.certificados.*']],
-        ['label' => 'Meus eventos', 'route' => route('app.eventos.index'), 'match' => ['app.eventos.*']],
-        ['label' => 'Pesquisas', 'route' => route('app.pesquisas-satisfacao.index'), 'match' => ['app.pesquisas-satisfacao.*']],
-        ['label' => 'Dados cadastrais', 'route' => route('app.cadastro.edit'), 'match' => ['app.cadastro.*']],
-        ['label' => 'Senha', 'route' => route('app.senha.edit'), 'match' => ['app.senha.*']],
+        ['label' => 'Início', 'route' => route('app.dashboard'), 'match' => ['app.dashboard'], 'primary' => true],
+        ['label' => 'Meus cursos', 'route' => route('app.turmas.index'), 'match' => ['app.turmas.*'], 'primary' => true],
+        ['label' => 'Inscrições', 'route' => route('app.inscricoes.index'), 'match' => ['app.inscricoes.*'], 'primary' => true],
+        ['label' => 'Quizzes', 'route' => route('app.quizzes.index'), 'match' => ['app.quizzes.*'], 'primary' => false],
+        ['label' => 'Certificados', 'route' => route('app.certificados.index'), 'match' => ['app.certificados.*'], 'primary' => true],
+        ['label' => 'Meus eventos', 'route' => route('app.eventos.index'), 'match' => ['app.eventos.*'], 'primary' => true],
+        ['label' => 'Pesquisas', 'route' => route('app.pesquisas-satisfacao.index'), 'match' => ['app.pesquisas-satisfacao.*'], 'primary' => false],
+        ['label' => 'Dados cadastrais', 'route' => route('app.cadastro.edit'), 'match' => ['app.cadastro.*'], 'primary' => false],
+        ['label' => 'Senha', 'route' => route('app.senha.edit'), 'match' => ['app.senha.*'], 'primary' => false],
     ];
+    $mobilePrimary = collect($nav)->where('primary', true)->values();
+    $mobileMore = collect($nav)->where('primary', false)->values();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="Área do aluno — cursos, aulas, eventos e certificados.">
+    <x-pwa.meta area="aluno" :title="$tenantLabel" />
     <x-favicon />
     <title>{{ ($title ?? null) ? $title.' — ' : '' }}Área do aluno · {{ $tenantLabel }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>[x-cloak]{display:none!important}</style>
     @stack('head')
 </head>
-<body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased selection:bg-cyan-500/30 selection:text-white">
+<body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased selection:bg-cyan-500/30 selection:text-white pt-[env(safe-area-inset-top)]">
     <div class="flex min-h-screen">
         <aside class="hidden w-64 shrink-0 border-r border-slate-800/80 bg-slate-900/95 lg:flex lg:flex-col">
             <div class="border-b border-slate-800/80 p-5">
                 <a href="{{ route('app.dashboard') }}" class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-cyan-500/20">EL</span>
+                    <img src="{{ asset('img/pwa-icon-192.png') }}" alt="" class="h-10 w-10 rounded-xl shadow-lg shadow-cyan-500/20" width="40" height="40">
                     <span class="leading-tight">
                         <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400">EAD</span>
                         <span class="block text-sm font-bold text-white">{{ $tenantLabel }}</span>
@@ -74,20 +79,41 @@
         <div class="flex min-w-0 flex-1 flex-col">
             <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-xl lg:hidden">
                 <div class="flex items-center justify-between gap-3 px-4 py-3">
-                    <a href="{{ route('app.dashboard') }}" class="text-sm font-bold text-white">Área do aluno</a>
+                    <a href="{{ route('app.dashboard') }}" class="flex min-w-0 items-center gap-2">
+                        <img src="{{ asset('img/pwa-icon-192.png') }}" alt="" class="h-8 w-8 shrink-0 rounded-lg" width="32" height="32">
+                        <span class="truncate text-sm font-bold text-white">Área do aluno</span>
+                    </a>
                     <form method="POST" action="{{ route('tenant.logout') }}" class="shrink-0">
                         @csrf
-                        <button type="submit" class="text-xs font-semibold text-cyan-400">Sair</button>
+                        <button type="submit" class="inline-flex min-h-11 items-center text-xs font-semibold text-cyan-400">Sair</button>
                     </form>
                 </div>
-                <nav class="flex gap-1 overflow-x-auto border-t border-slate-800/60 px-2 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    @foreach ($nav as $item)
+                <nav class="flex gap-1 overflow-x-auto border-t border-slate-800/60 px-2 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Menu rápido">
+                    @foreach ($mobilePrimary as $item)
                         @php $active = collect($item['match'])->contains(fn ($p) => request()->routeIs($p)); @endphp
                         <a href="{{ $item['route'] }}"
-                           class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap {{ $active ? 'bg-cyan-500 text-slate-950' : 'text-slate-400' }}">
+                           class="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap {{ $active ? 'bg-cyan-500 text-slate-950' : 'text-slate-400' }}">
                             {{ $item['label'] }}
                         </a>
                     @endforeach
+                    <div class="relative shrink-0" x-data="{ open: false }">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                                class="inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-xs font-semibold text-slate-400"
+                                :class="open ? 'bg-white/10 text-white' : ''"
+                                aria-haspopup="true" :aria-expanded="open.toString()">
+                            Mais
+                        </button>
+                        <div x-cloak x-show="open" x-transition
+                             class="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-xl">
+                            @foreach ($mobileMore as $item)
+                                @php $active = collect($item['match'])->contains(fn ($p) => request()->routeIs($p)); @endphp
+                                <a href="{{ $item['route'] }}"
+                                   class="block px-4 py-3 text-sm font-semibold {{ $active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5' }}">
+                                    {{ $item['label'] }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
                 </nav>
             </header>
 
@@ -110,7 +136,7 @@
                 </div>
             </header>
 
-            <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+            <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-[max(2rem,calc(env(safe-area-inset-bottom)+5rem))] sm:px-6 lg:px-8 lg:pb-8">
                 @if ($errors->any())
                     <div class="mb-6 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                         <p class="font-semibold">Corrija os campos abaixo:</p>
@@ -137,6 +163,9 @@
             </main>
         </div>
     </div>
+
+    <x-pwa.install area="aluno" />
+
     @stack('scripts')
 </body>
 </html>

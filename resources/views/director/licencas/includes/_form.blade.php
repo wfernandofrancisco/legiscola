@@ -11,7 +11,7 @@
         );
 @endphp
 
-<form method="POST" action="{{ $formAction }}" class="space-y-8"
+<form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-8"
     x-data="{
         tipo: @js(old('tipo_detectado', $tipoInicial)),
         modalidade: @js(old('modalidade', $licenca?->modalidade?->value ?? 'presencial')),
@@ -185,6 +185,34 @@
 
                 <x-form.date name="nota_fiscal_emitida_em" label="Nota fiscal emitida em"
                     :value="$licenca?->nota_fiscal_emitida_em?->format('Y-m-d') ?? old('nota_fiscal_emitida_em')" />
+
+                <div class="sm:col-span-2">
+                    <label for="nota_fiscal_arquivo" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Arquivo da nota fiscal
+                    </label>
+                    <input type="file" name="nota_fiscal_arquivo" id="nota_fiscal_arquivo" accept=".pdf,.png,.jpg,.jpeg"
+                        class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-slate-300 dark:file:bg-slate-700 dark:file:text-slate-100" />
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF ou imagem, até 10 MB. Só você enxerga este arquivo.</p>
+
+                    @if ($licenca?->nota_fiscal_arquivo_path)
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            Arquivo atual:
+                            <a href="{{ route('diretor.licencas.nota-fiscal', $licenca) }}"
+                                class="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                                {{ basename($licenca->nota_fiscal_arquivo_path) }}
+                            </a>
+                        </p>
+                        <label class="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                            <input type="checkbox" name="remover_nota_fiscal_arquivo" value="1"
+                                @checked(old('remover_nota_fiscal_arquivo'))>
+                            Remover arquivo atual
+                        </label>
+                    @endif
+
+                    @error('nota_fiscal_arquivo')
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
             @endif
         </div>
     </fieldset>

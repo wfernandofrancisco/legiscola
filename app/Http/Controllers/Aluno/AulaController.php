@@ -26,9 +26,13 @@ class AulaController extends Controller
         $student = $this->requireStudent();
         $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
 
-        $classLesson->load('courseClass.course', 'catalogLesson');
+        $classLesson->load('courseClass.course.catalogLicense', 'courseClass.teachers', 'catalogLesson');
 
         $courseClass = $classLesson->courseClass;
+
+        // Turma própria tem docentes cadastrados; a do catálogo traz só o nome do professor regional.
+        $professorNome = $courseClass?->teachers->pluck('full_name')->filter()->implode(', ')
+            ?: $courseClass?->course?->catalogProfessorNome();
 
         // Em aula vinda do catálogo regional, o vídeo mora no item do diretor, não na turma.
         $videoUrl = $classLesson->effectiveVideoUrl();
@@ -66,6 +70,7 @@ class AulaController extends Controller
             'materialDownloadRoute',
             'quizPct',
             'presencePct',
+            'professorNome',
             'canMarkOnlinePresence',
             'onlinePresenceConfirmed'
         ));

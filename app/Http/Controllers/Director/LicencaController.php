@@ -7,14 +7,21 @@ use App\Enums\CatalogLicenseStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Director\StoreCatalogLicenseRequest;
 use App\Http\Requests\Director\UpdateCatalogLicenseRequest;
+use App\Mail\CatalogLicenseReleasedMail;
 use App\Models\CatalogItem;
 use App\Models\CatalogLicense;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\CatalogLicenseService;
 use App\Support\DirectorContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class LicencaController extends Controller
 {
@@ -61,9 +68,16 @@ class LicencaController extends Controller
             $request->validated()
         );
 
+        $avisados = $this->notificarCamara($licenca);
+
+        $mensagem = "\"{$licenca->catalogItem->titulo}\" liberado para {$licenca->tenant->display_name}.";
+        $mensagem .= $avisados > 0
+            ? " Avisamos {$avisados} responsável(is) da câmara por e-mail."
+            : ' A câmara não tem administrador com e-mail para avisar.';
+
         return redirect()
             ->route('diretor.licencas.index')
-            ->with('success', "\"{$licenca->catalogItem->titulo}\" liberado para {$licenca->tenant->display_name}.");
+            ->with('success', $mensagem);
     }
 
     public function edit(CatalogLicense $licenca): View
@@ -79,11 +93,29 @@ class LicencaController extends Controller
     {
         $this->authorize('update', $licenca);
 
-        $this->licenses->update($licenca, $request->validated());
+        $this->licenses->update(
+            $licenca,
+            $request->validated(),
+            $request->file('nota_fiscal_arquivo'),
+            $request->boolean('remover_nota_fiscal_arquivo')
+        );
 
         return redirect()
             ->route('diretor.licencas.index')
             ->with('success', 'Licença atualizada.');
+    }
+
+    /**
+     * A nota fiscal fica em disco privado; só o diretor dono da licença baixa.
+     */
+    public function notaFiscal(CatalogLicense $licenca): StreamedResponse
+    {
+        $this->authorize('update', $licenca);
+
+        $path = $licenca->nota_fiscal_arquivo_path;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->download($path, basename($path));
     }
 
     public function destroy(CatalogLicense $licenca): RedirectResponse
@@ -95,6 +127,43 @@ class LicencaController extends Controller
         return redirect()
             ->route('diretor.licencas.index')
             ->with('success', 'Licença removida.');
+    }
+
+    /**
+     * Avisa os administradores da câmara que há conteúdo novo para colocar em agenda.
+     *
+     * Licença que nasce suspensa não gera aviso: não há o que a câmara fazer com ela ainda.
+     * Falha de e-mail não derruba a liberação — a licença já vale pelo painel.
+     */
+    private function notificarCamara(CatalogLicense $licenca): int
+    {
+        if (! $licenca->status->isUsable()) {
+            return 0;
+        }
+
+        $admins = User::query()
+            ->where('tenant_id', $licenca->tenant_id)
+            ->where('user_type', User::TYPE_TENANT_ADMIN)
+            ->where('status', User::STATUS_ATIVO)
+            ->whereNotNull('email')
+            ->get(['id', 'name', 'email']);
+
+        $enviados = 0;
+
+        foreach ($admins as $admin) {
+            try {
+                Mail::to($admin->email)->send(new CatalogLicenseReleasedMail($licenca, $admin->name));
+                $enviados++;
+            } catch (Throwable $e) {
+                Log::warning('Falha ao avisar câmara sobre licença liberada.', [
+                    'catalog_license_id' => $licenca->id,
+                    'user_id' => $admin->id,
+                    'erro' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $enviados;
     }
 
     /**

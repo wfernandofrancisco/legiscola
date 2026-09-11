@@ -88,7 +88,7 @@ class TurmaController extends Controller
             ->firstOrFail();
 
         $courseClass->load([
-            'course',
+            'course.catalogLicense',
             'teachers',
             'schedules',
             'satisfactionSurvey',

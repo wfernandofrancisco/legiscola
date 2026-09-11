@@ -3,13 +3,17 @@
 use App\Enums\CatalogItemStatus;
 use App\Enums\CatalogItemTipo;
 use App\Enums\CatalogLicenseStatus;
+use App\Mail\CatalogLicenseReleasedMail;
 use App\Models\CatalogItem;
 use App\Models\CatalogLicense;
 use App\Models\DirectorUf;
 use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 function licenseTenant(string $slug, string $uf): Tenant
 {
@@ -349,6 +353,121 @@ it('mostra palestra planejada na agenda do diretor', function () {
         ]))
         ->assertOk()
         ->assertJsonFragment(['title' => 'Orçamento público']);
+});
+
+it('guarda o arquivo da nota fiscal em disco privado e deixa o diretor baixar', function () {
+    Storage::fake('local');
+
+    $sp = licenseTenant('araras-sp', 'SP');
+    $director = licenseDirector(['SP']);
+    $item = licenseItem($director);
+
+    $licenca = CatalogLicense::create([
+        'catalog_item_id' => $item->id,
+        'tenant_id' => $sp->id,
+        'director_user_id' => $director->id,
+        'status' => 'ativa',
+    ]);
+
+    $this->actingAs($director)
+        ->put(route('diretor.licencas.update', $licenca), [
+            'status' => 'ativa',
+            'pagamento_status' => 'pago',
+            'nota_fiscal_numero' => '2026/114',
+            'nota_fiscal_arquivo' => UploadedFile::fake()->create('nf-2026-114.pdf', 120, 'application/pdf'),
+        ])
+        ->assertRedirect();
+
+    $path = $licenca->fresh()->nota_fiscal_arquivo_path;
+
+    expect($path)->not->toBeNull();
+    Storage::disk('local')->assertExists($path);
+
+    $this->actingAs($director)
+        ->get(route('diretor.licencas.nota-fiscal', $licenca))
+        ->assertOk()
+        ->assertDownload();
+});
+
+it('impede outro diretor de baixar a nota fiscal da licença', function () {
+    Storage::fake('local');
+
+    $sp = licenseTenant('araras-sp', 'SP');
+    $dono = licenseDirector(['SP']);
+    $outro = licenseDirector(['SP']);
+    $item = licenseItem($dono);
+
+    $licenca = CatalogLicense::create([
+        'catalog_item_id' => $item->id,
+        'tenant_id' => $sp->id,
+        'director_user_id' => $dono->id,
+        'status' => 'ativa',
+        'nota_fiscal_arquivo_path' => 'licencas/notas-fiscais/1/nf.pdf',
+    ]);
+
+    $this->actingAs($outro)
+        ->get(route('diretor.licencas.nota-fiscal', $licenca))
+        ->assertForbidden();
+});
+
+it('avisa os administradores da câmara ao liberar uma licença ativa', function () {
+    Mail::fake();
+
+    $sp = licenseTenant('araras-sp', 'SP');
+    $director = licenseDirector(['SP']);
+    $item = licenseItem($director);
+
+    $admin = User::create([
+        'tenant_id' => $sp->id,
+        'name' => 'Admin Araras',
+        'email' => 'admin-'.fake()->unique()->safeEmail(),
+        'password' => Hash::make('password'),
+        'user_type' => User::TYPE_TENANT_ADMIN,
+        'status' => User::STATUS_ATIVO,
+        'email_verified_at' => now(),
+    ]);
+
+    $this->actingAs($director)
+        ->post(route('diretor.licencas.store'), [
+            'catalog_item_id' => $item->id,
+            'tenant_id' => $sp->id,
+            'status' => 'ativa',
+        ])
+        ->assertRedirect(route('diretor.licencas.index'));
+
+    // O mailable é ShouldQueue, então entra na fila em vez de sair na hora.
+    Mail::assertQueued(
+        CatalogLicenseReleasedMail::class,
+        fn (CatalogLicenseReleasedMail $mail) => $mail->hasTo($admin->email)
+    );
+});
+
+it('não avisa a câmara quando a licença nasce suspensa', function () {
+    Mail::fake();
+
+    $sp = licenseTenant('araras-sp', 'SP');
+    $director = licenseDirector(['SP']);
+    $item = licenseItem($director);
+
+    User::create([
+        'tenant_id' => $sp->id,
+        'name' => 'Admin Araras',
+        'email' => 'admin-'.fake()->unique()->safeEmail(),
+        'password' => Hash::make('password'),
+        'user_type' => User::TYPE_TENANT_ADMIN,
+        'status' => User::STATUS_ATIVO,
+        'email_verified_at' => now(),
+    ]);
+
+    $this->actingAs($director)
+        ->post(route('diretor.licencas.store'), [
+            'catalog_item_id' => $item->id,
+            'tenant_id' => $sp->id,
+            'status' => 'suspensa',
+        ])
+        ->assertRedirect(route('diretor.licencas.index'));
+
+    Mail::assertNothingQueued();
 });
 
 it('exporta a agenda em ICS', function () {

@@ -9,9 +9,14 @@ use App\Models\CatalogItem;
 use App\Models\CatalogLicense;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class CatalogLicenseService
 {
+    /** Nota fiscal não é conteúdo público: vai para o disco privado. */
+    private const DISCO_NOTA_FISCAL = 'local';
+
     public function create(User $director, CatalogItem $item, Tenant $tenant, array $data): CatalogLicense
     {
         $status = CatalogLicenseStatus::from($data['status']);
@@ -41,7 +46,7 @@ class CatalogLicenseService
         ]);
     }
 
-    public function update(CatalogLicense $license, array $data): CatalogLicense
+    public function update(CatalogLicense $license, array $data, ?UploadedFile $notaFiscal = null, bool $removerNotaFiscal = false): CatalogLicense
     {
         $status = CatalogLicenseStatus::from($data['status']);
         $ehPalestra = $license->catalogItem->tipo === CatalogItemTipo::Palestra;
@@ -66,6 +71,8 @@ class CatalogLicenseService
             'nota_fiscal_emitida_em' => $data['nota_fiscal_emitida_em'] ?? null,
         ]);
 
+        $this->syncNotaFiscalArquivo($license, $notaFiscal, $removerNotaFiscal);
+
         // Marcar como pago sem informar a data é o caso comum; a data do dia evita linha sem referência.
         if ($license->pagamento_status === CatalogLicensePagamentoStatus::Pago && $license->pago_em === null) {
             $license->pago_em = now()->toDateString();
@@ -78,6 +85,24 @@ class CatalogLicenseService
         $license->save();
 
         return $license;
+    }
+
+    /**
+     * A nota fiscal é documento do diretor: fica em disco privado e sai só pela rota autenticada.
+     */
+    private function syncNotaFiscalArquivo(CatalogLicense $license, ?UploadedFile $arquivo, bool $remover): void
+    {
+        if ($arquivo === null && ! $remover) {
+            return;
+        }
+
+        if (filled($license->nota_fiscal_arquivo_path)) {
+            Storage::disk(self::DISCO_NOTA_FISCAL)->delete($license->nota_fiscal_arquivo_path);
+        }
+
+        $license->nota_fiscal_arquivo_path = $arquivo
+            ? $arquivo->store('licencas/notas-fiscais/'.$license->director_user_id, self::DISCO_NOTA_FISCAL)
+            : null;
     }
 
     public function changeStatus(CatalogLicense $license, CatalogLicenseStatus $status): CatalogLicense

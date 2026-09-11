@@ -120,6 +120,24 @@ class Event extends Model
     }
 
     /**
+     * Vídeo e material que a direção regional anexou à palestra.
+     *
+     * Some junto com o resto do conteúdo quando a licença passa do exibir_ate.
+     *
+     * @return \Illuminate\Support\Collection<int, CatalogLesson>
+     */
+    public function catalogContent(): \Illuminate\Support\Collection
+    {
+        if (! $this->isFromCatalog() || $this->catalogLicense?->isExpired()) {
+            return collect();
+        }
+
+        return $this->catalogItem?->lessons
+            ->filter(fn (CatalogLesson $aula) => $aula->hasVideo() || $aula->hasMaterial())
+            ->values() ?? collect();
+    }
+
+    /**
      * Aluno pode baixar o certificado deste evento até a data limite (se definida).
      */
     public function isCertificateAccessOpen(?DateTimeInterface $at = null): bool

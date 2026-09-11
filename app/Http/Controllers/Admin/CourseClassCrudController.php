@@ -113,7 +113,8 @@ class CourseClassCrudController extends Controller
         $turma->load([
             'linkedQuizzes' => fn ($q) => $q->orderBy('title'),
             'course:id,name,workload_hours,catalog_license_id',
-            'course.catalogLicense:id,professor_nome',
+            'course.catalogLicense:id,professor_nome,exibir_ate,director_user_id',
+            'course.catalogLicense.director:id,name',
             'teachers:id,full_name,email',
         ]);
 

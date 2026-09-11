@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\NoticiaController;
 use App\Http\Controllers\Admin\PortalContactMessageController;
 use App\Http\Controllers\Admin\ProfessorCredenciamentoController;
+use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\ProvaController;
 use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Admin\SatisfactionSurveyController;
@@ -39,6 +40,8 @@ Route::prefix('admin')
     ->group(function () {
 
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('avisos-regionais/{promo}', [PromoController::class, 'show'])->name('promos.show');
+        Route::post('avisos-regionais/{promo}/fechar', [PromoController::class, 'dismiss'])->name('promos.dismiss');
 
         Route::get('relatorios/sistema', [SystemReportController::class, 'index'])->name('relatorios.sistema');
         Route::get('relatorios/sistema/pdf', [SystemReportController::class, 'pdf'])->name('relatorios.sistema.pdf');

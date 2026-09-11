@@ -84,6 +84,16 @@ class Course extends Model
     }
 
     /**
+     * Quem ministra o conteúdo regional.
+     *
+     * Na licença é só um nome: a câmara compra o curso pronto e não escolhe o professor.
+     */
+    public function catalogProfessorNome(): ?string
+    {
+        return $this->catalogLicense?->professor_nome;
+    }
+
+    /**
      * Aparece no portal / listagens de inscrição.
      *
      * Conteúdo próprio da câmara sempre aparece. Conteúdo do catálogo some depois de exibir_ate.

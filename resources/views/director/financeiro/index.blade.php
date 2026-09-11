@@ -241,6 +241,12 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                                         {{ $licenca->nota_fiscal_numero ?: '—' }}
+                                        @if ($licenca->nota_fiscal_arquivo_path)
+                                            <a href="{{ route('diretor.licencas.nota-fiscal', $licenca) }}"
+                                                class="mt-1 block text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                                                baixar arquivo
+                                            </a>
+                                        @endif
                                     </td>
                                     <td
                                         class="px-4 py-3 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">

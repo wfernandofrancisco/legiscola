@@ -3,11 +3,13 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-pwa.meta area="professor" title="Professor" />
     <x-favicon />
     <title>{{ $title ?? 'Professor' }} — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>[x-cloak]{display:none!important}</style>
 
     {{-- Aplica tema e tamanho de fonte ANTES da renderização (sem flash) --}}
     <script>
@@ -391,6 +393,7 @@
     </script>
 
     @stack('scripts')
+    <x-pwa.install area="professor" />
 </body>
 
 </html>

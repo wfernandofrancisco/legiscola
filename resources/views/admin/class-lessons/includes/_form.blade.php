@@ -10,7 +10,27 @@
         $prefill = isset($prefillCourseClass) ? $prefillCourseClass : null;
         $selectedCourseClassId = old('course_class_id', $classLesson?->course_class_id ?? $prefill?->id);
         $selectedCourseClassName = old('course_class_search', $classLesson?->courseClass?->name ?? $prefill?->name ?? '');
+        $aulaDoCatalogo = $classLesson?->isFromCatalog() ? $classLesson->catalogLesson : null;
     @endphp
+
+    @if ($aulaDoCatalogo)
+        <div class="mb-6 rounded-lg border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-800/60 dark:bg-violet-950/30">
+            <div class="flex flex-wrap items-center gap-2">
+                <x-badge color="violet" text="Conteúdo regional" />
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $aulaDoCatalogo->titulo }}</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                O aluno já vê
+                <strong>{{ $aulaDoCatalogo->hasVideo() ? 'o vídeo' : 'nenhum vídeo' }}</strong>
+                e
+                <strong>{{ $aulaDoCatalogo->hasMaterial() ? 'o material' : 'nenhum material' }}</strong>
+                desta aula direto do catálogo da direção regional. Os campos abaixo ficam em branco de propósito.
+            </p>
+            <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                Preencha vídeo ou material aqui só para <strong>substituir</strong> o conteúdo regional por uma versão da câmara.
+            </p>
+        </div>
+    @endif
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="relative md:col-span-1">

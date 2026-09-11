@@ -2,6 +2,11 @@
     @php
         $dias = ['0' => 'Domingo', '1' => 'Segunda-feira', '2' => 'Terça-feira', '3' => 'Quarta-feira', '4' => 'Quinta-feira', '5' => 'Sexta-feira', '6' => 'Sábado'];
         $course = $courseClass->course;
+        // Curso do catálogo regional traz o professor no nome, sem cadastro de docente na câmara.
+        $docentes = $courseClass->relationLoaded('teachers')
+            ? $courseClass->teachers->pluck('full_name')->filter()->implode(', ')
+            : '';
+        $docentes = $docentes ?: $course?->catalogProfessorNome();
     @endphp
 
     <div class="mb-6 flex flex-wrap items-center gap-3">
@@ -12,10 +17,10 @@
     <header class="mb-10 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-8">
         <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ $courseClass->name }}</h1>
         <p class="mt-2 text-cyan-300/90">{{ $course?->name }}</p>
-        @if ($courseClass->relationLoaded('teachers') && $courseClass->teachers->isNotEmpty())
+        @if (filled($docentes))
             <p class="mt-3 text-sm text-slate-400">
                 <span class="font-semibold text-slate-300">Docente(s):</span>
-                {{ $courseClass->teachers->pluck('full_name')->filter()->implode(', ') }}
+                {{ $docentes }}
             </p>
         @endif
         @if ($course?->description)

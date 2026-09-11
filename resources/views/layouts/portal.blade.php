@@ -2,9 +2,10 @@
 <html class="scroll-smooth" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <x-favicon />
+    <x-pwa.meta area="portal" :title="$portalTenant?->display_name ?? config('app.name')" />
     <style>[x-cloak]{display:none !important}</style>
     @php
         $portalPageTitle = trim($__env->yieldContent('title'));
@@ -438,5 +439,6 @@
 <script>
     window.__portalAnimate = window.__portalAnimate || { revealThreshold: 0.1 };
 </script>
+<x-pwa.install area="portal" />
 </body>
 </html>

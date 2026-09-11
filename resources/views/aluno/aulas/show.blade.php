@@ -13,6 +13,11 @@
                         · {{ \Illuminate\Support\Str::substr($classLesson->start_time, 0, 5) }} às {{ \Illuminate\Support\Str::substr($classLesson->end_time, 0, 5) }}
                     @endif
                 </p>
+                @if (filled($professorNome))
+                    <p class="mt-1 text-sm text-slate-400">
+                        <span class="font-semibold text-slate-300">Professor:</span> {{ $professorNome }}
+                    </p>
+                @endif
             </header>
 
             @if ($videoEmbedUrl)

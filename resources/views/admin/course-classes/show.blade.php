@@ -70,6 +70,44 @@
         </div>
     </div>
 
+    @php
+        $licencaRegional = $turma->course?->catalogLicense;
+    @endphp
+
+    @if ($licencaRegional)
+        <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/30 sm:p-5">
+            <div class="flex flex-wrap items-center gap-2">
+                <x-badge color="violet" text="Conteúdo regional" />
+                @if ($licencaRegional->professor_nome)
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white">Professor: {{ $licencaRegional->professor_nome }}</span>
+                @endif
+            </div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                O vídeo e o material das aulas ficam no catálogo
+                {{ $licencaRegional->director?->name ? 'de '.$licencaRegional->director->name : 'da direção regional' }}
+                e o aluno já os vê — mesmo com os campos de vídeo/material em branco aqui.
+                A câmara ajusta datas, horários, chamada e matrículas.
+            </p>
+
+            <div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                @if ($licencaRegional->exibir_ate)
+                    <span>Conteúdo liberado até <strong class="text-slate-800 dark:text-slate-200">{{ $licencaRegional->exibir_ate->format('d/m/Y') }}</strong></span>
+                @endif
+                <span>
+                    Prazo do certificado:
+                    <strong class="text-slate-800 dark:text-slate-200">{{ $turma->certificado_disponivel_ate?->format('d/m/Y') ?? 'sem limite' }}</strong>
+                </span>
+            </div>
+
+            @if (! $turma->certificado_disponivel_ate)
+                <a href="{{ route('admin.turmas.edit', $turma) }}"
+                   class="mt-3 inline-flex min-h-11 items-center rounded-lg border border-indigo-300 bg-white px-3.5 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-indigo-700 dark:bg-slate-800 dark:text-indigo-200 dark:hover:bg-slate-700">
+                    Definir prazo do certificado
+                </a>
+            @endif
+        </div>
+    @endif
+
     <div class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur dark:border-slate-700 dark:bg-slate-800/95" role="tablist" aria-label="Seções da turma">
             <div class="flex gap-1 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -180,6 +218,9 @@
                                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
                                     <td class="px-4 py-3">
                                         <p class="font-semibold text-slate-900 dark:text-white">{{ $lessonRow->title }}</p>
+                                        @if ($lessonRow->isFromCatalog())
+                                            <p class="mt-1 text-xs text-violet-700 dark:text-violet-300">Vídeo e material vêm do catálogo regional</p>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-slate-700 dark:text-slate-300">
                                         <p>{{ $lessonRow->date?->format('d/m/Y') ?? '—' }}</p>

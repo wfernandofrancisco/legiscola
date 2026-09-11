@@ -37,6 +37,8 @@ class EventoController extends Controller
         $student = $this->requireStudent();
         $enrollment = $this->requireEnrollment($student, $evento);
 
+        $evento->load(['catalogItem.lessons', 'catalogLicense']);
+
         $windowOpen = $evento->isPresenceWindowOpen();
         $canCheckIn = $evento->isGeofenceCheckInEnabled() && $windowOpen && ! $enrollment->presente;
 
@@ -46,6 +48,7 @@ class EventoController extends Controller
             'enrollment' => $enrollment,
             'windowOpen' => $windowOpen,
             'canCheckIn' => $canCheckIn,
+            'catalogContent' => $evento->catalogContent(),
         ]);
     }
 

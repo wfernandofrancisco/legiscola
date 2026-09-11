@@ -62,6 +62,7 @@ class LicenseActivationService
     {
         $this->assertUsable($license, $tenantId);
         $this->assertEhCurso($license);
+        $this->assertTemAulas($license);
         $this->assertDentroDoLimite($license);
 
         return DB::transaction(function () use ($license, $tenantId, $data, $adminUserId): CourseClass {
@@ -134,9 +135,11 @@ class LicenseActivationService
         $intervalo = max(1, (int) ($data['intervalo_dias'] ?? self::INTERVALO_PADRAO_DIAS));
         $horaInicio = $data['hora_inicio'] ?? self::HORA_INICIO_PADRAO;
         $horaFim = $data['hora_fim'] ?? self::HORA_FIM_PADRAO;
+        // Turma presencial tem chamada em sala; só a turma online libera a autoconfirmação do aluno.
+        $aulaOnline = ($turma->tipo_turma ?? 'online') !== 'presencial';
 
         $license->catalogItem->lessons->values()->each(
-            function (CatalogLesson $aula, int $indice) use ($turma, $tenantId, $inicio, $intervalo, $horaInicio, $horaFim): void {
+            function (CatalogLesson $aula, int $indice) use ($turma, $tenantId, $inicio, $intervalo, $horaInicio, $horaFim, $aulaOnline): void {
                 ClassLesson::create([
                     'tenant_id' => $tenantId,
                     'course_class_id' => $turma->id,
@@ -145,8 +148,7 @@ class LicenseActivationService
                     'date' => $inicio->addDays($indice * $intervalo)->toDateString(),
                     'start_time' => $horaInicio,
                     'end_time' => $horaFim,
-                    // Aula de catálogo nasce como online: o conteúdo é o vídeo hospedado no item.
-                    'is_online' => true,
+                    'is_online' => $aulaOnline,
                 ]);
             }
         );
@@ -204,6 +206,16 @@ class LicenseActivationService
     {
         if ($license->catalogItem->tipo !== CatalogItemTipo::Palestra) {
             throw LicenseNotAvailableException::tipoIncompativel('palestra');
+        }
+    }
+
+    /**
+     * Turma sem aula nenhuma nasceria vazia para o aluno — o conteúdo vem todo do catálogo.
+     */
+    private function assertTemAulas(CatalogLicense $license): void
+    {
+        if ($license->catalogItem->lessons->isEmpty()) {
+            throw LicenseNotAvailableException::semAulas();
         }
     }
 }

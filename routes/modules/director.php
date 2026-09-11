@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Director\PromoController;
 use App\Http\Controllers\Director\AgendaController;
 use App\Http\Controllers\Director\CatalogoAulaController;
 use App\Http\Controllers\Director\CatalogoController;
@@ -42,9 +43,16 @@ Route::prefix('diretor')
             ->parameters(['licencas' => 'licenca'])
             ->except(['show']);
 
+        Route::get('licencas/{licenca}/nota-fiscal', [LicencaController::class, 'notaFiscal'])
+            ->name('licencas.nota-fiscal');
+
         Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
         Route::get('agenda/events', [AgendaController::class, 'events'])->name('agenda.events');
         Route::get('agenda/export.ics', [AgendaController::class, 'exportIcs'])->name('agenda.export');
+
+        Route::resource('promos', PromoController::class)
+            ->parameters(['promos' => 'promo'])
+            ->except(['show']);
 
         Route::get('financeiro', [FinanceiroController::class, 'index'])->name('financeiro.index');
     });

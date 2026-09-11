@@ -39,6 +39,12 @@
             'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
         ],
         [
+            'route' => 'diretor.promos.index',
+            'active' => 'diretor.promos.*',
+            'label' => 'Avisos',
+            'icon' => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
+        ],
+        [
             'route' => 'diretor.financeiro.index',
             'active' => 'diretor.financeiro.*',
             'label' => 'Financeiro',
@@ -54,11 +60,13 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-pwa.meta area="diretor" title="Diretor" />
     <x-favicon />
     <title>Direção Regional — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>[x-cloak]{display:none!important}</style>
     @stack('styles')
 
     {{-- Aplica tema e tamanho de fonte ANTES da renderização (sem flash) --}}
@@ -276,6 +284,7 @@
     </script>
 
     @stack('scripts')
+    <x-pwa.install area="diretor" />
 </body>
 
 </html>

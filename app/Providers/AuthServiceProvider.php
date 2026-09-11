@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Attendance;
 use App\Models\CatalogItem;
 use App\Models\CatalogLicense;
+use App\Models\CatalogPromo;
 use App\Models\Certificate;
 use App\Models\Cnae;
 use App\Models\CourseClass;
@@ -19,6 +20,7 @@ use App\Models\User;
 use App\Policies\AttendancePolicy;
 use App\Policies\CatalogItemPolicy;
 use App\Policies\CatalogLicensePolicy;
+use App\Policies\CatalogPromoPolicy;
 use App\Policies\CertificatePolicy;
 use App\Policies\CnaePolicy;
 use App\Policies\CourseClassPolicy;
@@ -64,6 +66,7 @@ class AuthServiceProvider extends ServiceProvider
         Quiz::class => QuizPolicy::class,
         CatalogItem::class => CatalogItemPolicy::class,
         CatalogLicense::class => CatalogLicensePolicy::class,
+        CatalogPromo::class => CatalogPromoPolicy::class,
     ];
 
     /**

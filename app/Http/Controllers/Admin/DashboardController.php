@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogLicense;
 use App\Models\CourseClass;
 use App\Models\Enrollment;
 use App\Models\Noticia;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\CatalogPromoService;
 use Carbon\CarbonImmutable;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private CatalogPromoService $promos) {}
+
     public function index(): View
     {
         $tenantId = auth()->user()->tenant_id;
@@ -115,6 +119,20 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Conteúdo que a direção regional liberou e a câmara ainda não colocou em turma/evento.
+        $licencasDisponiveis = CatalogLicense::query()
+            ->forTenant((int) $tenantId)
+            ->usable()
+            ->with(['catalogItem:id,titulo,tipo'])
+            ->orderByRaw('exibir_ate is null, exibir_ate')
+            ->get()
+            ->filter(fn (CatalogLicense $licenca) => $licenca->catalogItem?->isPalestra()
+                ? $licenca->canOpenEvento()
+                : $licenca->canOpenTurma())
+            ->values();
+
+        $avisosRegionais = $this->promos->forAdminDashboard(auth()->user());
+
         $stats = [
             'total_usuarios' => User::where('tenant_id', $tenantId)->count(),
             'total_noticias' => Noticia::where('tenant_id', $tenantId)->count(),
@@ -136,7 +154,9 @@ class DashboardController extends Controller
             'enrollmentStatusCounts',
             'sexoCounts',
             'ageBuckets',
-            'openClasses'
+            'openClasses',
+            'licencasDisponiveis',
+            'avisosRegionais'
         ));
     }
 }

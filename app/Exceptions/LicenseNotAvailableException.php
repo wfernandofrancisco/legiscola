@@ -38,4 +38,9 @@ class LicenseNotAvailableException extends RuntimeException
     {
         return new self("Este conteúdo não é do tipo {$esperado}.");
     }
+
+    public static function semAulas(): self
+    {
+        return new self('Este curso ainda não tem aulas cadastradas pela direção regional. Abrir a turma agora deixaria os alunos sem conteúdo.');
+    }
 }

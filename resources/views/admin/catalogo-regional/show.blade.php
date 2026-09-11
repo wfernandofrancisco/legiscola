@@ -7,7 +7,9 @@
         $turmas = $licenca->course?->courseClasses ?? collect();
         $eventos = $licenca->events;
         $restantes = $ehPalestra ? $licenca->eventosRestantes() : $licenca->turmasRestantes();
-        $podeAbrir = $ehPalestra ? $licenca->canOpenEvento() : $licenca->canOpenTurma();
+        // Curso sem aula abriria turma vazia: o conteúdo todo mora no catálogo da direção.
+        $semAulas = ! $ehPalestra && $item->lessons->isEmpty();
+        $podeAbrir = ($ehPalestra ? $licenca->canOpenEvento() : $licenca->canOpenTurma()) && ! $semAulas;
     @endphp
 
     <x-page-header :title="$item->titulo" :subtitle="$item->resumo ?: 'Conteúdo liberado pela direção regional'"
@@ -158,6 +160,8 @@
             <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 @if ($ehPalestra)
                     A palestra vira um evento da sua câmara: inscrições, presença e certificado ficam com você.
+                @elseif ($semAulas)
+                    Este curso ainda não tem aulas publicadas pela direção regional.
                 @else
                     As {{ $item->lessons->count() }} aulas são criadas automaticamente a partir da data da primeira
                     aula. Você pode ajustar cada data depois.
@@ -169,7 +173,10 @@
             <div class="p-5">
                 <div
                     class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
-                    @if ($licenca->isExpired())
+                    @if ($semAulas)
+                        A direção regional ainda não cadastrou as aulas deste curso. Abrir a turma agora deixaria os
+                        alunos sem conteúdo — avise a direção para publicar as aulas.
+                    @elseif ($licenca->isExpired())
                         O prazo deste conteúdo terminou em {{ $licenca->exibir_ate->format('d/m/Y') }}. Fale com a
                         direção regional para renovar.
                     @elseif (!$licenca->status->isUsable())

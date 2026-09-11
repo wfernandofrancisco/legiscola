@@ -63,7 +63,12 @@ class EventController extends Controller
 
     public function edit(Event $evento): View
     {
-        $event = $evento->load(['enrollments' => fn ($q) => $q->latest('id'), 'enrollments.student.user']);
+        $event = $evento->load([
+            'enrollments' => fn ($q) => $q->latest('id'),
+            'enrollments.student.user',
+            'catalogItem.lessons',
+            'catalogLicense',
+        ]);
 
         $studentIds = $event->enrollments->pluck('student_id')->filter()->values();
         $latestCertificateHashByStudent = [];

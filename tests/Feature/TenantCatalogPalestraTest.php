@@ -4,6 +4,7 @@ use App\Enums\CatalogItemStatus;
 use App\Enums\CatalogItemTipo;
 use App\Exceptions\LicenseNotAvailableException;
 use App\Models\CatalogItem;
+use App\Models\CatalogLesson;
 use App\Models\CatalogLicense;
 use App\Models\DirectorUf;
 use App\Models\Event;
@@ -269,6 +270,54 @@ it('mostra a tela de agendar em vez de abrir turma para palestra', function () {
         ->assertOk()
         ->assertSee('Agendar esta palestra')
         ->assertDontSee('Abrir uma turma');
+});
+
+it('entrega o material da palestra do catálogo ao aluno e ao admin', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    $licenca = palestraLicense($director, $tenant, overrides: [
+        'exibir_ate' => now()->addMonth()->toDateString(),
+    ]);
+
+    CatalogLesson::create([
+        'catalog_item_id' => $licenca->catalog_item_id,
+        'ordem' => 1,
+        'titulo' => 'Slides da palestra',
+        'material_url' => 'https://exemplo.com/slides-lgpd.pdf',
+    ]);
+
+    $evento = app(LicenseActivationService::class)->openEvento($licenca, $tenant->id, palestraPayload());
+
+    expect($evento->fresh()->catalogContent())->toHaveCount(1);
+
+    $admin = palestraAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/eventos/'.$evento->id.'/edit')
+        ->assertOk()
+        ->assertSee('Slides da palestra');
+});
+
+it('esconde o material da palestra depois que a licença vence', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    $licenca = palestraLicense($director, $tenant, overrides: [
+        'exibir_ate' => now()->addMonth()->toDateString(),
+    ]);
+
+    CatalogLesson::create([
+        'catalog_item_id' => $licenca->catalog_item_id,
+        'ordem' => 1,
+        'titulo' => 'Slides da palestra',
+        'material_url' => 'https://exemplo.com/slides-lgpd.pdf',
+    ]);
+
+    $evento = app(LicenseActivationService::class)->openEvento($licenca, $tenant->id, palestraPayload());
+
+    $licenca->forceFill(['exibir_ate' => now()->subDay()->toDateString()])->save();
+
+    expect($evento->fresh()->catalogContent())->toBeEmpty();
 });
 
 it('oculta no portal público o evento do catálogo após exibir_ate', function () {

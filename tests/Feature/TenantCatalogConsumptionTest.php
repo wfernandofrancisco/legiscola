@@ -249,6 +249,56 @@ it('bloqueia abrir turma de licença com prazo vencido', function () {
     app(LicenseActivationService::class)->openTurma($licenca, $tenant->id, consumoTurmaPayload());
 })->throws(LicenseNotAvailableException::class);
 
+it('bloqueia abrir turma de curso sem aulas no catálogo', function () {
+    $tenant = consumoTenant('araras-sp');
+    $director = consumoDirector();
+    $licenca = consumoLicense($director, $tenant, aulas: 0);
+
+    app(LicenseActivationService::class)->openTurma($licenca, $tenant->id, consumoTurmaPayload());
+})->throws(LicenseNotAvailableException::class);
+
+it('esconde o formulário de turma quando o curso do catálogo não tem aulas', function () {
+    $tenant = consumoTenant('araras-sp');
+    $director = consumoDirector();
+    $licenca = consumoLicense($director, $tenant, aulas: 0);
+
+    $admin = consumoAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/catalogo-regional/'.$licenca->id)
+        ->assertOk()
+        ->assertSee('ainda não cadastrou as aulas deste curso')
+        ->assertDontSee('Criar turma com as aulas');
+});
+
+it('marca as aulas como presenciais quando a turma do catálogo é presencial', function () {
+    $tenant = consumoTenant('araras-sp');
+    $director = consumoDirector();
+    $licenca = consumoLicense($director, $tenant, aulas: 2);
+
+    $turma = app(LicenseActivationService::class)->openTurma($licenca, $tenant->id, consumoTurmaPayload([
+        'tipo_turma' => 'presencial',
+    ]));
+
+    $aulas = ClassLesson::withoutGlobalScopes()->where('course_class_id', $turma->id)->get();
+
+    expect($aulas)->toHaveCount(2)
+        ->and($aulas->every(fn (ClassLesson $aula) => $aula->is_online === false))->toBeTrue();
+});
+
+it('mantém as aulas online quando a turma do catálogo é online', function () {
+    $tenant = consumoTenant('araras-sp');
+    $director = consumoDirector();
+    $licenca = consumoLicense($director, $tenant, aulas: 2);
+
+    $turma = app(LicenseActivationService::class)->openTurma($licenca, $tenant->id, consumoTurmaPayload());
+
+    $aulas = ClassLesson::withoutGlobalScopes()->where('course_class_id', $turma->id)->get();
+
+    expect($aulas->every(fn (ClassLesson $aula) => $aula->is_online === true))->toBeTrue();
+});
+
 it('bloqueia abrir turma de licença suspensa', function () {
     $tenant = consumoTenant('araras-sp');
     $director = consumoDirector();

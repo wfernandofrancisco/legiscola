@@ -11,6 +11,7 @@
         'red' => 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
         'blue' => 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
         'cyan' => 'bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300',
+        'violet' => 'bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300',
         default => 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     };
 
@@ -20,6 +21,7 @@
         'red' => 'bg-red-500',
         'blue' => 'bg-blue-500',
         'cyan' => 'bg-cyan-500',
+        'violet' => 'bg-violet-500',
         default => 'bg-gray-500',
     };
 @endphp

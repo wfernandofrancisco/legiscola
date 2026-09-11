@@ -16,12 +16,74 @@
                         {{ collect([$event->address, $event->number, $event->district, $event->city, $event->state])->filter()->implode(', ') }}
                     </p>
                 @endif
+                @if (filled($event->palestrante_nome))
+                    <p class="mt-2 text-sm text-slate-400">
+                        <span class="font-semibold text-slate-300">Palestrante:</span> {{ $event->palestrante_nome }}
+                    </p>
+                @endif
                 @if (filled($event->description))
                     <div class="prose prose-invert prose-sm mt-6 max-w-none text-slate-300">
                         {!! nl2br(e($event->description)) !!}
                     </div>
                 @endif
             </header>
+
+            @if ($catalogContent->isNotEmpty())
+                <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+                    <h2 class="text-base font-bold text-white">Material da palestra</h2>
+                    <p class="mt-1 text-sm text-slate-400">Disponível enquanto a palestra estiver liberada.</p>
+
+                    <div class="mt-5 space-y-6">
+                        @foreach ($catalogContent as $conteudo)
+                            @php
+                                $videoUrl = $conteudo->effectiveVideoUrl();
+                                $videoEmbedUrl = $conteudo->videoEmbedUrl();
+                                $materialUrl = $conteudo->materialDownloadUrl();
+                            @endphp
+                            <div class="space-y-3">
+                                <p class="text-sm font-semibold text-slate-200">{{ $conteudo->titulo }}</p>
+
+                                @if ($videoEmbedUrl)
+                                    <div class="overflow-hidden rounded-2xl border border-slate-800 bg-black">
+                                        <div class="aspect-video w-full">
+                                            <iframe class="h-full w-full" src="{{ $videoEmbedUrl }}?rel=0"
+                                                    title="Vídeo da palestra"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowfullscreen loading="lazy"></iframe>
+                                        </div>
+                                    </div>
+                                @elseif ($conteudo->isUploadedVideo() && $videoUrl)
+                                    <div class="overflow-hidden rounded-2xl border border-slate-800 bg-black">
+                                        <div class="aspect-video w-full">
+                                            <video class="h-full w-full" controls preload="metadata" playsinline src="{{ $videoUrl }}">
+                                                Seu navegador não reproduz este vídeo.
+                                                <a href="{{ $videoUrl }}" class="text-cyan-300 underline">Baixar o arquivo</a>
+                                            </video>
+                                        </div>
+                                    </div>
+                                @elseif ($videoUrl)
+                                    <a href="{{ $videoUrl }}" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
+                                        Assistir ao vídeo
+                                        <span aria-hidden="true">↗</span>
+                                    </a>
+                                @endif
+
+                                @if ($materialUrl)
+                                    <a href="{{ $materialUrl }}" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
+                                        Abrir material
+                                        @if ($conteudo->material_file_name)
+                                            <span class="font-normal text-cyan-300/90">({{ $conteudo->material_file_name }})</span>
+                                        @endif
+                                        <span aria-hidden="true">↗</span>
+                                    </a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
 
             @if ($event->isGeofenceCheckInEnabled())
                 <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">

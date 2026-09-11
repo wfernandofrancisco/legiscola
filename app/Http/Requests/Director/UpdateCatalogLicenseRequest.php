@@ -40,6 +40,8 @@ class UpdateCatalogLicenseRequest extends FormRequest
             'forma_pagamento' => ['nullable', 'string', 'max:100'],
             'nota_fiscal_numero' => ['nullable', 'string', 'max:100'],
             'nota_fiscal_emitida_em' => ['nullable', 'date'],
+            'nota_fiscal_arquivo' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:10240'],
+            'remover_nota_fiscal_arquivo' => ['nullable', 'boolean'],
         ];
     }
 
@@ -81,6 +83,7 @@ class UpdateCatalogLicenseRequest extends FormRequest
             'forma_pagamento' => 'forma de pagamento',
             'nota_fiscal_numero' => 'número da nota fiscal',
             'nota_fiscal_emitida_em' => 'emissão da nota fiscal',
+            'nota_fiscal_arquivo' => 'arquivo da nota fiscal',
         ];
     }
 }
