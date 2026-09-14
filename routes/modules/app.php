@@ -37,6 +37,7 @@ Route::prefix('aluno')
         Route::get('turmas/{courseClass}', [TurmaController::class, 'show'])->name('turmas.show');
         Route::get('aulas/{classLesson}', [AulaController::class, 'show'])->name('aulas.show')->whereNumber('classLesson');
         Route::get('aulas/{classLesson}/material', [AulaController::class, 'downloadMaterial'])->name('aulas.material')->whereNumber('classLesson');
+        Route::get('aulas/{classLesson}/video', [AulaController::class, 'streamVideo'])->name('aulas.video')->whereNumber('classLesson');
         Route::post('aulas/{classLesson}/presenca', [AulaController::class, 'storePresence'])->name('aulas.presenca')->whereNumber('classLesson');
         Route::get('certificados', [CertificadoController::class, 'index'])->name('certificados.index');
         Route::get('certificados/{certificate}/baixar', [CertificadoController::class, 'download'])->name('certificados.baixar');

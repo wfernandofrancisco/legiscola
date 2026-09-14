@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Scopes\TenantScope;
+use App\Support\TenantContext;
+use App\Support\VideoEmbed;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +28,7 @@ class ClassLesson extends Model
         'end_time',
         'is_online',
         'video_url',
+        'video_path',
         'material_url',
         'material_file_path',
         'material_file_name',
@@ -62,15 +65,31 @@ class ClassLesson extends Model
         return $this->catalog_lesson_id !== null;
     }
 
+    public function isUploadedVideo(): bool
+    {
+        return filled($this->video_path);
+    }
+
+    public function videoPublicUrl(): ?string
+    {
+        if (! filled($this->video_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->video_path);
+    }
+
     /**
      * Vídeo exibido para o aluno.
      *
-     * Em aula vinda do catálogo o vídeo não é copiado: fica no item de origem, então corrigir o
-     * link lá corrige em todas as câmaras. Um link preenchido localmente tem precedência, para a
-     * câmara poder substituir por uma gravação própria.
+     * Prioridade: arquivo anexado na câmara → link local → conteúdo do catálogo regional.
      */
     public function effectiveVideoUrl(): ?string
     {
+        if (filled($this->video_path)) {
+            return $this->videoPublicUrl();
+        }
+
         if (filled($this->video_url)) {
             return $this->video_url;
         }
@@ -79,16 +98,44 @@ class ClassLesson extends Model
     }
 
     /**
-     * Player HTML5 (&lt;video&gt;) em vez de iframe — arquivo MP4 do catálogo.
+     * Player HTML5 (&lt;video&gt;) em vez de iframe — MP4 anexado na câmara ou no catálogo.
      */
     public function effectiveVideoIsNative(): bool
     {
+        if (filled($this->video_path)) {
+            return true;
+        }
+
         // Link local da câmara continua como URL externa (YouTube/Vimeo/arquivo).
         if (filled($this->video_url)) {
             return false;
         }
 
         return (bool) $this->catalogLesson?->isUploadedVideo();
+    }
+
+    /**
+     * Rótulo da origem do vídeo (YouTube, Vimeo, arquivo anexado, catálogo…).
+     */
+    public function effectiveVideoSourceLabel(): ?string
+    {
+        if (filled($this->video_path)) {
+            return 'Arquivo anexado';
+        }
+
+        if (filled($this->video_url)) {
+            return VideoEmbed::detectProvider($this->video_url)?->label() ?? 'Link externo';
+        }
+
+        if ($this->catalogLesson?->isUploadedVideo()) {
+            return 'Arquivo do catálogo';
+        }
+
+        if ($this->catalogLesson?->hasVideo()) {
+            return $this->catalogLesson->video_provider?->label() ?? 'Catálogo regional';
+        }
+
+        return null;
     }
 
     public function effectiveMaterialUrl(): ?string
@@ -148,5 +195,34 @@ class ClassLesson extends Model
             ->withoutGlobalScopes([TenantScope::class])
             ->whereKey($id)
             ->firstOrFail();
+    }
+
+    /**
+     * Binding de rota: ignora TenantScope em class_lessons (tenant_id da aula pode divergir
+     * após importação/catálogo), mas exige que a turma da aula pertença ao tenant da request.
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        $field ??= $this->getRouteKeyName();
+
+        $lesson = static::query()
+            ->withoutGlobalScopes([TenantScope::class])
+            ->where($field, $value)
+            ->first();
+
+        if (! $lesson) {
+            return null;
+        }
+
+        $tenantId = TenantContext::getTenantId();
+        if ($tenantId === null) {
+            return $lesson;
+        }
+
+        $turmaDoTenant = CourseClass::query()
+            ->whereKey($lesson->course_class_id)
+            ->exists();
+
+        return $turmaDoTenant ? $lesson : null;
     }
 }

@@ -1,6 +1,6 @@
 <form method="POST" enctype="multipart/form-data"
     action="{{ $action === 'edit' ? route('admin.aulas.update', $classLesson) : route('admin.aulas.store') }}"
-    class="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+    class="js-ajax-upload-form w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
     @csrf
     @if ($action === 'edit')
         @method('PUT')
@@ -49,7 +49,50 @@
             <input type="checkbox" name="is_online" value="1" @checked(old('is_online', $classLesson?->is_online))>
             <label class="text-sm text-gray-700 dark:text-gray-300">Aula online</label>
         </div>
-        <x-form.input name="video_url" label="URL do vídeo" :value="$classLesson?->video_url ?? old('video_url')" />
+
+        <div class="md:col-span-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50/60 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+            <div class="flex flex-wrap items-center gap-2">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white">Vídeo da aula</p>
+                @if ($classLesson?->effectiveVideoSourceLabel())
+                    <x-badge :color="$classLesson->isUploadedVideo() || $classLesson->effectiveVideoIsNative() ? 'green' : 'blue'"
+                        :text="$classLesson->effectiveVideoSourceLabel()" />
+                @endif
+            </div>
+
+            <x-form.input name="video_url" label="Link do vídeo (YouTube / Vimeo)" :value="$classLesson?->video_url ?? old('video_url')"
+                hint="YouTube e Vimeo tocam embutidos. Se anexar um arquivo abaixo, o arquivo tem prioridade." />
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Arquivo de vídeo (MP4)</label>
+
+                @if ($action === 'edit' && $classLesson?->video_path)
+                    <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($classLesson->video_path) }}" target="_blank" rel="noopener"
+                            class="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                            Vídeo anexado atual
+                        </a>
+                        <label class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" name="remove_video" value="1" @checked(old('remove_video'))>
+                            Remover arquivo
+                        </label>
+                    </div>
+                    <video controls preload="metadata" class="mt-3 max-h-48 w-full rounded-xl bg-black"
+                        src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($classLesson->video_path) }}"></video>
+                @endif
+
+                <input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                    class="mt-2 block w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-300 dark:file:bg-gray-700 dark:file:text-gray-100" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    MP4, WebM ou MOV, até 200 MB. Preferência: comprima com
+                    <a href="https://handbrake.fr/" target="_blank" rel="noopener" class="font-medium text-indigo-600 hover:underline dark:text-indigo-400">HandBrake</a>
+                    (preset Fast 720p30 e marque <strong>Web Optimized</strong>) antes de enviar. Vídeo longo ou maior que isso: use o link do YouTube acima.
+                </p>
+                @error('video_file')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+
         <x-form.input name="material_url" label="URL do material (link externo)" :value="$classLesson?->material_url ?? old('material_url')"
             hint="Opcional. Use para link externo; para arquivo no servidor use o campo abaixo." />
         <div class="md:col-span-3">
@@ -72,6 +115,7 @@
         </div>
     </div>
     <div class="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+        @include('partials.ajax-form-upload-progress')
         <button type="submit" class="inline-flex rounded-lg bg-indigo-600 text-white px-5 py-2 text-sm font-medium">
             {{ $action === 'edit' ? 'Salvar Alterações' : 'Criar Aula' }}
         </button>

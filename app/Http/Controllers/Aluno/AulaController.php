@@ -35,9 +35,13 @@ class AulaController extends Controller
             ?: $courseClass?->course?->catalogProfessorNome();
 
         // Em aula vinda do catálogo regional, o vídeo mora no item do diretor, não na turma.
-        $videoUrl = $classLesson->effectiveVideoUrl();
         $videoNative = $classLesson->effectiveVideoIsNative();
+        $videoUrl = $videoNative
+            ? route('app.aulas.video', $classLesson)
+            : $classLesson->effectiveVideoUrl();
         $videoEmbedUrl = $videoNative ? null : VideoEmbed::embedUrl($videoUrl);
+        $videoSourceLabel = $classLesson->effectiveVideoSourceLabel();
+        $videoMimeType = $videoNative ? $this->resolveVideoMimeType($classLesson) : null;
 
         $materialUrl = $classLesson->effectiveMaterialUrl();
         $materialName = $classLesson->effectiveMaterialName();
@@ -65,6 +69,8 @@ class AulaController extends Controller
             'videoUrl',
             'videoEmbedUrl',
             'videoNative',
+            'videoMimeType',
+            'videoSourceLabel',
             'materialUrl',
             'materialName',
             'materialDownloadRoute',
@@ -120,6 +126,52 @@ class AulaController extends Controller
         $name = $classLesson->material_file_name ?: basename($path);
 
         return Storage::disk('public')->download($path, $name);
+    }
+
+    /**
+     * Stream do MP4 com suporte a Range (seek no player HTML5).
+     */
+    public function streamVideo(int $classLesson): Response
+    {
+        $student = $this->requireStudent();
+        $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
+        $classLesson->loadMissing('catalogLesson');
+
+        abort_unless($classLesson->effectiveVideoIsNative(), 404);
+
+        $path = filled($classLesson->video_path)
+            ? $classLesson->video_path
+            : $classLesson->catalogLesson?->video_path;
+
+        abort_unless($path && Storage::disk('public')->exists($path), 404);
+
+        $absolute = Storage::disk('public')->path($path);
+        $mime = $this->mimeFromPath($path);
+
+        return response()->file($absolute, [
+            'Content-Type' => $mime,
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    private function resolveVideoMimeType(ClassLesson $classLesson): string
+    {
+        $classLesson->loadMissing('catalogLesson');
+        $path = filled($classLesson->video_path)
+            ? $classLesson->video_path
+            : ($classLesson->catalogLesson?->video_path ?? '');
+
+        return $this->mimeFromPath((string) $path);
+    }
+
+    private function mimeFromPath(string $path): string
+    {
+        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'webm' => 'video/webm',
+            'mov' => 'video/quicktime',
+            default => 'video/mp4',
+        };
     }
 
     private function resolveEnrolledLesson(Student $student, int $lessonId): ClassLesson

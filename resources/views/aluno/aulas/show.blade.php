@@ -22,6 +22,11 @@
 
             @if ($videoEmbedUrl)
                 <div class="overflow-hidden rounded-3xl border border-slate-800 bg-black shadow-2xl ring-1 ring-white/5">
+                    @if ($videoSourceLabel)
+                        <div class="flex items-center justify-between border-b border-white/10 bg-slate-950/80 px-4 py-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ $videoSourceLabel }}</span>
+                        </div>
+                    @endif
                     <div class="aspect-video w-full">
                         <iframe class="h-full w-full"
                                 src="{{ $videoEmbedUrl }}?rel=0"
@@ -33,20 +38,78 @@
                 </div>
             @elseif ($videoNative && $videoUrl)
                 <div class="overflow-hidden rounded-3xl border border-slate-800 bg-black shadow-2xl ring-1 ring-white/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-950/80 px-4 py-2">
+                        @if ($videoSourceLabel)
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300/90">{{ $videoSourceLabel }}</span>
+                        @else
+                            <span></span>
+                        @endif
+                        <div class="flex items-center gap-1.5" data-video-speed>
+                            <span class="mr-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Velocidade</span>
+                            @foreach ([0.75, 1, 1.25, 1.5, 1.75, 2] as $rate)
+                                <button type="button"
+                                        data-rate="{{ $rate }}"
+                                        class="rounded-lg px-2 py-1 text-xs font-bold transition {{ $rate == 1 ? 'bg-cyan-500 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10' }}">
+                                    {{ rtrim(rtrim(number_format($rate, 2, '.', ''), '0'), '.') }}x
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
                     <div class="aspect-video w-full">
-                        <video class="h-full w-full" controls preload="metadata" playsinline
-                               src="{{ $videoUrl }}">
+                        <video id="aula-video-player" class="h-full w-full" controls preload="metadata" playsinline>
+                            <source src="{{ $videoUrl }}" type="{{ $videoMimeType ?? 'video/mp4' }}">
                             Seu navegador não reproduz este vídeo.
-                            <a href="{{ $videoUrl }}" class="text-cyan-300 underline">Baixar o arquivo</a>
+                            <a href="{{ $videoUrl }}" class="text-cyan-300 underline">Abrir o arquivo</a>
                         </video>
                     </div>
                 </div>
+                @push('scripts')
+                    <script>
+                        (function () {
+                            var video = document.getElementById('aula-video-player');
+                            var wrap = document.querySelector('[data-video-speed]');
+                            if (!video || !wrap) return;
+
+                            var buttons = wrap.querySelectorAll('button[data-rate]');
+                            var storageKey = 'aula-video-speed';
+
+                            function applyRate(rate) {
+                                video.playbackRate = rate;
+                                try { localStorage.setItem(storageKey, String(rate)); } catch (e) {}
+                                buttons.forEach(function (btn) {
+                                    var active = parseFloat(btn.getAttribute('data-rate')) === rate;
+                                    btn.classList.toggle('bg-cyan-500', active);
+                                    btn.classList.toggle('text-slate-950', active);
+                                    btn.classList.toggle('bg-white/5', !active);
+                                    btn.classList.toggle('text-slate-300', !active);
+                                });
+                            }
+
+                            buttons.forEach(function (btn) {
+                                btn.addEventListener('click', function () {
+                                    applyRate(parseFloat(btn.getAttribute('data-rate')));
+                                });
+                            });
+
+                            var saved = null;
+                            try { saved = parseFloat(localStorage.getItem(storageKey)); } catch (e) {}
+                            if (saved && !isNaN(saved)) {
+                                applyRate(saved);
+                            }
+                        })();
+                    </script>
+                @endpush
             @elseif ($videoUrl)
-                <a href="{{ $videoUrl }}" target="_blank" rel="noopener noreferrer"
-                   class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
-                    Assistir ao vídeo da aula
-                    <span aria-hidden="true">↗</span>
-                </a>
+                <div class="space-y-2">
+                    @if ($videoSourceLabel)
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ $videoSourceLabel }}</p>
+                    @endif
+                    <a href="{{ $videoUrl }}" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20">
+                        Assistir ao vídeo da aula
+                        <span aria-hidden="true">↗</span>
+                    </a>
+                </div>
             @else
                 <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 text-sm text-slate-500">Esta aula ainda não tem vídeo cadastrado.</div>
             @endif

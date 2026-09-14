@@ -8,11 +8,9 @@ use App\Http\Requests\Escola\StoreClassLessonRequest;
 use App\Http\Requests\Escola\UpdateClassLessonRequest;
 use App\Models\ClassLesson;
 use App\Models\CourseClass;
-use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ClassLessonController extends Controller
@@ -50,23 +48,16 @@ class ClassLessonController extends Controller
         return view('admin.class-lessons.create', compact('breadcrumbs', 'prefillCourseClass'));
     }
 
-    public function store(StoreClassLessonRequest $request): RedirectResponse
+    public function store(StoreClassLessonRequest $request): RedirectResponse|JsonResponse
     {
-        $data = collect($request->validated())->except(['material_file'])->all();
-        if ($request->hasFile('material_file')) {
-            $file = $request->file('material_file');
-            $data['material_file_path'] = $file->store('class-lessons/'.TenantContext::getTenantId(), 'public');
-            $data['material_file_name'] = $file->getClientOriginalName();
-        }
+        $data = $request->validated();
         $this->service->create($data);
         $courseClassId = (int) ($data['course_class_id'] ?? 0);
-        if ($courseClassId > 0) {
-            return redirect()
-                ->route('admin.turmas.show', ['turma' => $courseClassId, 'tab' => 'aulas'])
-                ->with('success', 'Aula criada com sucesso.');
-        }
+        $url = $courseClassId > 0
+            ? route('admin.turmas.show', ['turma' => $courseClassId, 'tab' => 'aulas'])
+            : route('admin.aulas.index');
 
-        return redirect()->route('admin.aulas.index')->with('success', 'Aula criada com sucesso.');
+        return $this->respondAfterSave($request, $url, 'Aula criada com sucesso.');
     }
 
     public function edit(ClassLesson $aula): View
@@ -80,33 +71,14 @@ class ClassLessonController extends Controller
         return view('admin.class-lessons.edit', compact('classLesson', 'breadcrumbs'));
     }
 
-    public function update(UpdateClassLessonRequest $request, ClassLesson $aula): RedirectResponse
+    public function update(UpdateClassLessonRequest $request, ClassLesson $aula): RedirectResponse|JsonResponse
     {
-        $data = collect($request->validated())->except(['material_file', 'remove_material_file'])->all();
+        $this->service->update($aula, $request->validated());
+        $url = (int) $aula->course_class_id > 0
+            ? route('admin.turmas.show', ['turma' => $aula->course_class_id, 'tab' => 'aulas'])
+            : route('admin.aulas.index');
 
-        if ($request->hasFile('material_file')) {
-            if ($aula->material_file_path) {
-                Storage::disk('public')->delete($aula->material_file_path);
-            }
-            $file = $request->file('material_file');
-            $data['material_file_path'] = $file->store('class-lessons/'.TenantContext::getTenantId(), 'public');
-            $data['material_file_name'] = $file->getClientOriginalName();
-        } elseif ($request->boolean('remove_material_file')) {
-            if ($aula->material_file_path) {
-                Storage::disk('public')->delete($aula->material_file_path);
-            }
-            $data['material_file_path'] = null;
-            $data['material_file_name'] = null;
-        }
-
-        $this->service->update($aula, $data);
-        if ((int) $aula->course_class_id > 0) {
-            return redirect()
-                ->route('admin.turmas.show', ['turma' => $aula->course_class_id, 'tab' => 'aulas'])
-                ->with('success', 'Aula atualizada com sucesso.');
-        }
-
-        return redirect()->route('admin.aulas.index')->with('success', 'Aula atualizada com sucesso.');
+        return $this->respondAfterSave($request, $url, 'Aula atualizada com sucesso.');
     }
 
     public function destroy(ClassLesson $aula): RedirectResponse
@@ -144,5 +116,19 @@ class ClassLessonController extends Controller
             ]);
 
         return response()->json($results);
+    }
+
+    private function respondAfterSave(Request $request, string $url, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            session()->flash('success', $message);
+
+            return response()->json([
+                'redirect' => $url,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->to($url)->with('success', $message);
     }
 }

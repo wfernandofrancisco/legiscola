@@ -9,11 +9,9 @@ use App\Http\Requests\Escola\UpdateClassLessonRequest;
 use App\Models\ClassLesson;
 use App\Models\CourseClass;
 use App\Support\ProfessorContext;
-use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ClassLessonController extends Controller
@@ -77,19 +75,17 @@ class ClassLessonController extends Controller
         ));
     }
 
-    public function store(StoreClassLessonRequest $request): RedirectResponse
+    public function store(StoreClassLessonRequest $request): RedirectResponse|JsonResponse
     {
-        $data = collect($request->validated())->except(['material_file'])->all();
+        $data = $request->validated();
         $this->assertCourseClassAllowed((int) $data['course_class_id']);
-
-        if ($request->hasFile('material_file')) {
-            $file = $request->file('material_file');
-            $data['material_file_path'] = $file->store('class-lessons/'.TenantContext::getTenantId(), 'public');
-            $data['material_file_name'] = $file->getClientOriginalName();
-        }
         $this->service->create($data);
 
-        return redirect()->route('professor.aulas.index')->with('success', 'Aula criada com sucesso.');
+        return $this->respondAfterSave(
+            $request,
+            route('professor.aulas.index'),
+            'Aula criada com sucesso.'
+        );
     }
 
     public function edit(ClassLesson $aula): View
@@ -113,32 +109,20 @@ class ClassLessonController extends Controller
         return view('professor.aulas.edit', compact('classLesson', 'breadcrumbs', 'courseClasses'));
     }
 
-    public function update(UpdateClassLessonRequest $request, ClassLesson $aula): RedirectResponse
+    public function update(UpdateClassLessonRequest $request, ClassLesson $aula): RedirectResponse|JsonResponse
     {
         $aula->load('courseClass');
         $this->authorize('interactAsAssignedProfessor', $aula->courseClass);
 
-        $data = collect($request->validated())->except(['material_file', 'remove_material_file'])->all();
+        $data = $request->validated();
         $this->assertCourseClassAllowed((int) $data['course_class_id']);
-
-        if ($request->hasFile('material_file')) {
-            if ($aula->material_file_path) {
-                Storage::disk('public')->delete($aula->material_file_path);
-            }
-            $file = $request->file('material_file');
-            $data['material_file_path'] = $file->store('class-lessons/'.TenantContext::getTenantId(), 'public');
-            $data['material_file_name'] = $file->getClientOriginalName();
-        } elseif ($request->boolean('remove_material_file')) {
-            if ($aula->material_file_path) {
-                Storage::disk('public')->delete($aula->material_file_path);
-            }
-            $data['material_file_path'] = null;
-            $data['material_file_name'] = null;
-        }
-
         $this->service->update($aula, $data);
 
-        return redirect()->route('professor.aulas.index')->with('success', 'Aula atualizada com sucesso.');
+        return $this->respondAfterSave(
+            $request,
+            route('professor.aulas.index'),
+            'Aula atualizada com sucesso.'
+        );
     }
 
     public function destroy(ClassLesson $aula): RedirectResponse
@@ -181,5 +165,19 @@ class ClassLessonController extends Controller
         abort_unless(in_array($courseClassId, ProfessorContext::assignedCourseClassIds(), true), 403);
         $cc = CourseClass::query()->findOrFail($courseClassId);
         $this->authorize('interactAsAssignedProfessor', $cc);
+    }
+
+    private function respondAfterSave(Request $request, string $url, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            session()->flash('success', $message);
+
+            return response()->json([
+                'redirect' => $url,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->to($url)->with('success', $message);
     }
 }

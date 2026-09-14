@@ -22,7 +22,14 @@ class UpdateClassLessonRequest extends FormRequest
             'start_time' => ['required'],
             'end_time' => ['required'],
             'is_online' => ['nullable', 'boolean'],
-            'video_url' => ['nullable', 'url'],
+            'video_url' => ['nullable', 'url', 'max:2000'],
+            'video_file' => [
+                'nullable',
+                'file',
+                'max:204800',
+                'mimetypes:video/mp4,video/webm,video/quicktime',
+            ],
+            'remove_video' => ['nullable', 'boolean'],
             'material_url' => ['nullable', 'url'],
             'material_file' => [
                 'nullable',
@@ -31,6 +38,17 @@ class UpdateClassLessonRequest extends FormRequest
                 'mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,zip,txt,png,jpg,jpeg,webp',
             ],
             'remove_material_file' => ['nullable', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'video_file.max' => 'O vídeo pode ter no máximo 200 MB.',
+            'video_file.mimetypes' => 'Envie um vídeo MP4, WebM ou MOV.',
         ];
     }
 
