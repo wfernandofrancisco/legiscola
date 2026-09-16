@@ -82,60 +82,9 @@
             </div>
         </section>
 
-        @if (($avisosRegionais ?? collect())->isNotEmpty())
-            <section class="space-y-3" aria-label="Avisos da direção regional">
-                @foreach ($avisosRegionais as $aviso)
-                    <div class="relative overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-sm dark:border-amber-800/50 dark:from-amber-950/40 dark:via-slate-900 dark:to-slate-900 sm:p-6">
-                        <div class="flex flex-wrap items-start justify-between gap-4">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <x-badge color="yellow" text="Aviso regional" />
-                                    @if ($aviso->desconto_percentual)
-                                        <x-badge color="green" :text="$aviso->desconto_percentual.'% off'" />
-                                    @endif
-                                </div>
-                                <h2 class="mt-3 text-lg font-bold text-slate-900 dark:text-white">{{ $aviso->titulo }}</h2>
-                                @if ($aviso->mensagem)
-                                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ \Illuminate\Support\Str::limit($aviso->mensagem, 140) }}</p>
-                                @endif
-                                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                    {{ $aviso->catalogItem?->titulo }}
-                                    @if ($aviso->preco_por)
-                                        · <strong class="text-emerald-700 dark:text-emerald-300">R$ {{ number_format((float) $aviso->preco_por, 2, ',', '.') }}</strong>
-                                        @if ($aviso->preco_de)
-                                            <span class="line-through">R$ {{ number_format((float) $aviso->preco_de, 2, ',', '.') }}</span>
-                                        @endif
-                                    @endif
-                                    @if ($aviso->termina_em)
-                                        · até {{ $aviso->termina_em->format('d/m/Y') }}
-                                    @endif
-                                </p>
-                            </div>
-                            <div class="flex shrink-0 flex-wrap gap-2">
-                                <a href="{{ route('admin.promos.show', $aviso) }}"
-                                   class="inline-flex min-h-11 items-center rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                                    Ver curso e aulas
-                                </a>
-                                <form method="POST" action="{{ route('admin.promos.dismiss', $aviso) }}">
-                                    @csrf
-                                    <button type="submit"
-                                            class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                                        Fechar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-                <p class="px-1 text-xs text-slate-500 dark:text-slate-400">
-                    Ao fechar ou abrir o aviso, ele some daqui. Só volta se a direção regional atualizar o conteúdo — não reaparece todo dia.
-                </p>
-            </section>
-        @endif
-
-        @if (($licencasDisponiveis ?? collect())->isNotEmpty())
+        @if (($licencasPendentes ?? collect())->isNotEmpty())
             @php
-                $prazoMaisCurto = $licencasDisponiveis->pluck('exibir_ate')->filter()->sort()->first();
+                $prazoMaisCurto = $licencasPendentes->pluck('exibir_ate')->filter()->sort()->first();
             @endphp
             <section class="rounded-3xl border border-violet-200 bg-violet-50/70 p-5 shadow-sm dark:border-violet-800/60 dark:bg-violet-950/30 sm:p-6"
                      aria-labelledby="licencas-regionais-titulo">
@@ -143,8 +92,8 @@
                     <div class="min-w-0">
                         <x-badge color="violet" text="Direção regional" />
                         <h2 id="licencas-regionais-titulo" class="mt-3 text-lg font-bold text-slate-900 dark:text-white">
-                            Você tem {{ $licencasDisponiveis->count() }}
-                            {{ $licencasDisponiveis->count() === 1 ? 'conteúdo liberado' : 'conteúdos liberados' }} para colocar em agenda
+                            Você tem {{ $licencasPendentes->count() }}
+                            {{ $licencasPendentes->count() === 1 ? 'conteúdo liberado' : 'conteúdos liberados' }} para colocar em agenda
                             @if ($prazoMaisCurto)
                                 — o primeiro prazo vence em {{ $prazoMaisCurto->format('d/m/Y') }}
                             @endif
@@ -154,7 +103,7 @@
                         </p>
 
                         <ul class="mt-4 flex flex-wrap gap-2">
-                            @foreach ($licencasDisponiveis->take(4) as $licenca)
+                            @foreach ($licencasPendentes->take(4) as $licenca)
                                 <li>
                                     <a href="{{ route('admin.catalogo-regional.show', $licenca) }}"
                                        class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-violet-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-800 transition hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:border-violet-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">
@@ -170,7 +119,7 @@
 
                     <a href="{{ route('admin.catalogo-regional.index') }}"
                        class="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
-                        Ver conteúdo regional
+                        Ver cursos externos
                     </a>
                 </div>
             </section>

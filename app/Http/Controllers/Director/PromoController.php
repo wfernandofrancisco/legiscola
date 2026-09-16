@@ -26,6 +26,7 @@ class PromoController extends Controller
         $promos = CatalogPromo::query()
             ->where('director_user_id', $request->user()->id)
             ->with(['catalogItem', 'tenants'])
+            ->withCount('contacts')
             ->orderByDesc('id')
             ->paginate(15);
 
@@ -76,11 +77,23 @@ class PromoController extends Controller
     {
         $this->authorize('delete', $promo);
 
-        $promo->delete();
+        $this->promos->delete($promo);
 
         return redirect()
             ->route('diretor.promos.index')
             ->with('success', 'Aviso removido.');
+    }
+
+    public function contatos(CatalogPromo $promo): View
+    {
+        $this->authorize('update', $promo);
+
+        $contatos = $promo->contacts()
+            ->with(['tenant:id,name,nome_fantasia,cidade,estado'])
+            ->latest()
+            ->paginate(20);
+
+        return view('director.promos.contatos', compact('promo', 'contatos'));
     }
 
     /**
@@ -93,7 +106,7 @@ class PromoController extends Controller
                 ->where('owner_user_id', auth()->id())
                 ->where('status', CatalogItemStatus::Publicado)
                 ->orderBy('titulo')
-                ->get(['id', 'titulo', 'tipo']),
+                ->get(['id', 'titulo', 'tipo', 'capa_path']),
             'camaras' => DirectorContext::tenants()
                 ->where('status', Tenant::STATUS_ATIVO)
                 ->where('cadastro_status', Tenant::CADASTRO_ATIVO)

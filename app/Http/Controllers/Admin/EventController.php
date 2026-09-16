@@ -201,6 +201,11 @@ class EventController extends Controller
     {
         $data = $request->validated();
 
+        $evento->loadMissing('catalogLicense');
+        if ($evento->catalogLicense) {
+            $data = $evento->catalogLicense->overlayDirectorAgenda($data);
+        }
+
         if ($request->hasFile('photo')) {
             if ($evento->photo_path) {
                 Storage::disk('public')->delete($evento->photo_path);

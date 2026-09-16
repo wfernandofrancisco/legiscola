@@ -5,10 +5,40 @@
     @if ($action === 'edit')
         @method('PUT')
     @endif
+    @php
+        $licencaCatalogo = $event?->catalogLicense;
+        $travaData = $licencaCatalogo?->locksPalestraDate();
+        $travaVagas = $licencaCatalogo?->locksPalestraSeats();
+        $travaModalidade = $licencaCatalogo?->locksPalestraModalidade();
+    @endphp
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <x-form.input name="title" label="Título" :value="$event?->title ?? old('title')" />
-        <x-form.input name="max_seats" label="Vagas" type="number" :value="$event?->max_seats ?? old('max_seats')" />
-        <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local" :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))" />
+        @if ($travaVagas)
+            <div>
+                <x-form.input name="max_seats_display" label="Vagas" type="number" disabled
+                    :value="$licencaCatalogo->max_inscritos"
+                    hint="Definido pela direção regional — não pode ser alterado." />
+                <input type="hidden" name="max_seats" value="{{ $licencaCatalogo->max_inscritos }}">
+            </div>
+        @else
+            <x-form.input name="max_seats" label="Vagas" type="number" :value="$event?->max_seats ?? old('max_seats')" />
+        @endif
+        @if ($travaData)
+            <div>
+                <x-form.input name="date_time_display" label="Data e hora do evento" type="datetime-local" disabled
+                    :value="$licencaCatalogo->palestra_em->format('Y-m-d\TH:i')"
+                    hint="Definido pela direção regional — não pode ser alterado." />
+                <input type="hidden" name="date_time" value="{{ $licencaCatalogo->palestra_em->format('Y-m-d\TH:i') }}">
+            </div>
+        @else
+            <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local" :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))" />
+        @endif
+        @if ($travaModalidade)
+            <x-form.select name="modalidade_display" label="Modalidade" disabled
+                :options="\App\Enums\CatalogLicenseModalidade::options()"
+                :selected="$licencaCatalogo->modalidade->value"
+                hint="Definido pela direção regional — não pode ser alterado." />
+        @endif
         <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/40">
             <div class="flex items-center gap-2">
                 <input id="allow_online_registration" type="checkbox" name="allow_online_registration" value="1"

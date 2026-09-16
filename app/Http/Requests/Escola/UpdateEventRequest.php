@@ -34,6 +34,23 @@ class UpdateEventRequest extends FormRequest
             'palestrante_cpf' => $cpf !== '' ? $cpf : null,
             'palestrante_senha' => $this->filled('palestrante_senha') ? $this->input('palestrante_senha') : null,
         ]);
+
+        /** @var Event|null $event */
+        $event = $this->route('evento');
+        $event?->loadMissing('catalogLicense');
+        $licenca = $event?->catalogLicense;
+
+        if ($licenca?->locksPalestraDate()) {
+            $this->merge([
+                'date_time' => $licenca->palestra_em->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if ($licenca?->locksPalestraSeats()) {
+            $this->merge([
+                'max_seats' => $licenca->max_inscritos,
+            ]);
+        }
     }
 
     public function rules(): array

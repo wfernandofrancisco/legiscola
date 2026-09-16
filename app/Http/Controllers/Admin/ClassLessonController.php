@@ -62,7 +62,7 @@ class ClassLessonController extends Controller
 
     public function edit(ClassLesson $aula): View
     {
-        $classLesson = $aula;
+        $classLesson = $aula->loadMissing('catalogLesson', 'courseLesson', 'courseClass');
         $breadcrumbs = [
             ['label' => 'Painel', 'href' => route('admin.dashboard')],
             ['label' => 'Aulas', 'href' => route('admin.aulas.index')],

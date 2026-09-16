@@ -334,7 +334,8 @@ it('mostra ao admin apenas o conteúdo liberado para a própria câmara', functi
         ->get('http://'.$host.'/admin/escola/catalogo-regional')
         ->assertOk()
         ->assertSee('Conteudo de Araras')
-        ->assertDontSee('Conteudo de Leme');
+        ->assertSee(route('admin.catalogo-regional.show', $licencaAraras), false)
+        ->assertDontSee(route('admin.catalogo-regional.show', $licencaLeme), false);
 });
 
 it('devolve 404 quando o admin abre licença de outra câmara', function () {
@@ -393,5 +394,79 @@ it('oculta no portal o curso do catálogo após exibir_ate', function () {
         ->assertDontSee('Curso Portal Expirado');
 
     $this->get('http://'.$host.'/cursos/'.$course->id)
+        ->assertNotFound();
+});
+
+it('lista cursos externos publicados do diretor da UF mesmo sem licença', function () {
+    $tenant = consumoTenant('araras-ext-sp');
+    $diretorSp = consumoDirector('SP');
+    $diretorMg = consumoDirector('MG');
+
+    $itemSp = CatalogItem::create([
+        'owner_user_id' => $diretorSp->id,
+        'tipo' => CatalogItemTipo::Curso,
+        'titulo' => 'Curso externo SP visivel',
+        'status' => CatalogItemStatus::Publicado,
+    ]);
+    CatalogLesson::create([
+        'catalog_item_id' => $itemSp->id,
+        'ordem' => 1,
+        'titulo' => 'Aula catalogo SP',
+        'video_url' => 'https://www.youtube.com/watch?v=abc',
+    ]);
+
+    CatalogItem::create([
+        'owner_user_id' => $diretorMg->id,
+        'tipo' => CatalogItemTipo::Curso,
+        'titulo' => 'Curso externo MG oculto',
+        'status' => CatalogItemStatus::Publicado,
+    ]);
+
+    CatalogItem::create([
+        'owner_user_id' => $diretorSp->id,
+        'tipo' => CatalogItemTipo::Curso,
+        'titulo' => 'Rascunho SP oculto',
+        'status' => CatalogItemStatus::Rascunho,
+    ]);
+
+    $admin = consumoAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin')
+        ->assertOk()
+        ->assertSee('Cursos externos disponíveis', false);
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/catalogo-regional')
+        ->assertOk()
+        ->assertSee('Curso externo SP visivel', false)
+        ->assertSee('Ver catálogo', false)
+        ->assertDontSee('Curso externo MG oculto', false)
+        ->assertDontSee('Rascunho SP oculto', false);
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/catalogo-regional/itens/'.$itemSp->id)
+        ->assertOk()
+        ->assertSee('Aula catalogo SP', false)
+        ->assertSee('ainda não foi liberado', false);
+});
+
+it('nao abre catalogo de diretor de outra UF', function () {
+    $tenant = consumoTenant('araras-ext-mg-block');
+    $diretorMg = consumoDirector('MG');
+
+    $itemMg = CatalogItem::create([
+        'owner_user_id' => $diretorMg->id,
+        'tipo' => CatalogItemTipo::Curso,
+        'titulo' => 'Curso MG bloqueado',
+        'status' => CatalogItemStatus::Publicado,
+    ]);
+
+    $admin = consumoAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/catalogo-regional/itens/'.$itemMg->id)
         ->assertNotFound();
 });

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\CatalogItemStatus;
 use App\Enums\CatalogItemTipo;
+use App\Scopes\TenantScope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,5 +75,20 @@ class CatalogItem extends Model
     public function isLicensable(): bool
     {
         return $this->status->isLicensable();
+    }
+
+    /**
+     * Catálogo publicado por diretores que cobrem a UF da câmara.
+     */
+    public function scopePublishedForUf(Builder $query, string $uf): Builder
+    {
+        $uf = strtoupper($uf);
+
+        return $query
+            ->where('status', CatalogItemStatus::Publicado)
+            ->whereHas('owner', function (Builder $owner) use ($uf): void {
+                $owner->withoutGlobalScopes([TenantScope::class])
+                    ->whereHas('directorUfs', fn (Builder $ufs) => $ufs->where('uf', $uf));
+            });
     }
 }

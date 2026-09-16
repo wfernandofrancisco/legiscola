@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ClassLessonController;
 use App\Http\Controllers\Admin\CourseClassController;
 use App\Http\Controllers\Admin\CourseClassCrudController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\CourseLessonController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\NoticiaController;
@@ -42,6 +43,7 @@ Route::prefix('admin')
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('avisos-regionais/{promo}', [PromoController::class, 'show'])->name('promos.show');
         Route::post('avisos-regionais/{promo}/fechar', [PromoController::class, 'dismiss'])->name('promos.dismiss');
+        Route::post('avisos-regionais/{promo}/contato', [PromoController::class, 'contact'])->name('promos.contact');
 
         Route::get('relatorios/sistema', [SystemReportController::class, 'index'])->name('relatorios.sistema');
         Route::get('relatorios/sistema/pdf', [SystemReportController::class, 'pdf'])->name('relatorios.sistema.pdf');
@@ -68,14 +70,21 @@ Route::prefix('admin')
 
         // Conteúdo liberado pela direção regional
         Route::get('escola/catalogo-regional', [CatalogoRegionalController::class, 'index'])->name('catalogo-regional.index');
+        Route::get('escola/catalogo-regional/itens/{item}', [CatalogoRegionalController::class, 'showItem'])->name('catalogo-regional.itens.show');
         Route::get('escola/catalogo-regional/{licenca}', [CatalogoRegionalController::class, 'show'])->name('catalogo-regional.show');
         Route::post('escola/catalogo-regional/{licenca}/turmas', [CatalogoRegionalController::class, 'storeTurma'])->name('catalogo-regional.turmas.store');
         Route::post('escola/catalogo-regional/{licenca}/eventos', [CatalogoRegionalController::class, 'storeEvento'])->name('catalogo-regional.eventos.store');
 
         Route::resource('escola/cursos', CourseController::class)->parameters(['cursos' => 'course'])->except(['show']);
         Route::get('escola/cursos-busca', [CourseController::class, 'search'])->name('cursos.search');
+        Route::get('escola/cursos/{course}/aulas-grade', [CourseLessonController::class, 'gradePayload'])->name('cursos.aulas.grade');
+        Route::post('escola/cursos/{course}/aulas', [CourseLessonController::class, 'store'])->name('cursos.aulas.store');
+        Route::put('escola/cursos/{course}/aulas/{courseLesson}', [CourseLessonController::class, 'update'])->name('cursos.aulas.update');
+        Route::delete('escola/cursos/{course}/aulas/{courseLesson}', [CourseLessonController::class, 'destroy'])->name('cursos.aulas.destroy');
+        Route::post('escola/cursos/{course}/aulas/ordenar', [CourseLessonController::class, 'reorder'])->name('cursos.aulas.reorder');
         Route::resource('escola/professores', TeacherController::class)->parameters(['professores' => 'professore'])->except(['show']);
         Route::resource('escola/turmas', CourseClassCrudController::class)->parameters(['turmas' => 'turma']);
+        Route::put('escola/turmas/{turma}/grade', [CourseClassCrudController::class, 'updateGrade'])->name('turmas.grade.update');
         Route::put('escola/turmas/{turma}/quizzes-janelas', [CourseClassCrudController::class, 'updateQuizWindows'])->name('turmas.quizzes-janelas.update');
         Route::patch('escola/turmas/{turma}/matriculas/{enrollment}/status', [CourseClassCrudController::class, 'updateEnrollmentStatus'])->name('turmas.matriculas.status');
         Route::patch('escola/turmas/{turma}/matriculas/concluir-inscritos', [CourseClassCrudController::class, 'markInscritosAsConcluido'])->name('turmas.matriculas.concluir-inscritos');

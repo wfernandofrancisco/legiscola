@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 /**
  * Licença de um item do catálogo para uma câmara.
@@ -194,5 +195,67 @@ class CatalogLicense extends Model
     public function isUsable(): bool
     {
         return $this->status->isUsable() && ! $this->isExpired();
+    }
+
+    public function locksPalestraDate(): bool
+    {
+        return $this->palestra_em !== null;
+    }
+
+    public function locksPalestraSeats(): bool
+    {
+        return $this->max_inscritos !== null;
+    }
+
+    public function locksPalestraModalidade(): bool
+    {
+        return $this->modalidade !== null;
+    }
+
+    /**
+     * Data, vagas e o que o diretor já fechou na licença prevalecem sobre o que a câmara enviar.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function overlayDirectorAgenda(array $data): array
+    {
+        if ($this->locksPalestraDate()) {
+            $data['date_time'] = $this->palestra_em;
+        }
+
+        if ($this->locksPalestraSeats()) {
+            $data['max_seats'] = $this->max_inscritos;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Licenças liberadas que a câmara ainda não colocou em agenda (turma ou palestra).
+     *
+     * @return Collection<int, self>
+     */
+    public static function pendingAgendaForTenant(int $tenantId): Collection
+    {
+        return static::query()
+            ->forTenant($tenantId)
+            ->usable()
+            ->with(['catalogItem:id,titulo,tipo'])
+            ->withCount([
+                'events as events_count',
+                'courseClasses as course_classes_count',
+            ])
+            ->orderByDesc('liberado_em')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(function (self $licenca): bool {
+                if ($licenca->catalogItem?->isPalestra()) {
+                    return $licenca->canOpenEvento() && (int) $licenca->events_count === 0;
+                }
+
+                return $licenca->canOpenTurma() && (int) $licenca->course_classes_count === 0;
+            })
+            ->values();
     }
 }

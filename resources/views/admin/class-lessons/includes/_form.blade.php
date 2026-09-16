@@ -11,6 +11,7 @@
         $selectedCourseClassId = old('course_class_id', $classLesson?->course_class_id ?? $prefill?->id);
         $selectedCourseClassName = old('course_class_search', $classLesson?->courseClass?->name ?? $prefill?->name ?? '');
         $aulaDoCatalogo = $classLesson?->isFromCatalog() ? $classLesson->catalogLesson : null;
+        $aulaDoCurso = $classLesson?->isFromCourseContent() ? $classLesson->courseLesson : null;
     @endphp
 
     @if ($aulaDoCatalogo)
@@ -28,6 +29,23 @@
             </p>
             <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
                 Preencha vídeo ou material aqui só para <strong>substituir</strong> o conteúdo regional por uma versão da câmara.
+            </p>
+        </div>
+    @elseif ($aulaDoCurso)
+        <div class="mb-6 rounded-lg border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/30">
+            <div class="flex flex-wrap items-center gap-2">
+                <x-badge color="blue" text="Aula do curso" />
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $aulaDoCurso->title }}</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                O aluno já vê
+                <strong>{{ $aulaDoCurso->hasVideo() ? 'o vídeo' : 'nenhum vídeo' }}</strong>
+                e
+                <strong>{{ $aulaDoCurso->hasMaterial() ? 'o material' : 'nenhum material' }}</strong>
+                cadastrados no curso. Esta tela é a grade desta turma (data e horário).
+            </p>
+            <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                Preencha vídeo ou material aqui só para substituir o conteúdo do curso nesta turma.
             </p>
         </div>
     @endif

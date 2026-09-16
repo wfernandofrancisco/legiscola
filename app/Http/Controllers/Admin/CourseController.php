@@ -27,6 +27,7 @@ class CourseController extends Controller
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', (string) $request->input('status')))
+            ->withCount('lessons')
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -52,6 +53,7 @@ class CourseController extends Controller
 
     public function edit(Course $course): View
     {
+        $course->load(['lessons', 'catalogItem.lessons']);
         $breadcrumbs = [
             ['label' => 'Painel', 'href' => route('admin.dashboard')],
             ['label' => 'Cursos', 'href' => route('admin.cursos.index')],
@@ -63,8 +65,11 @@ class CourseController extends Controller
 
     public function store(StoreCourseRequest $request): RedirectResponse
     {
-        $this->service->create($request->validated());
-        return back()->with('success', 'Curso criado com sucesso.');
+        $course = $this->service->create($request->validated());
+
+        return redirect()
+            ->route('admin.cursos.edit', $course)
+            ->with('success', 'Curso criado. Agora cadastre as aulas de conteúdo (sem data). A grade entra na turma.');
     }
 
     public function update(UpdateCourseRequest $request, Course $course): RedirectResponse

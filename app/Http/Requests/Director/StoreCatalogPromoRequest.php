@@ -18,7 +18,9 @@ class StoreCatalogPromoRequest extends FormRequest
         return [
             'catalog_item_id' => ['required', 'integer', 'exists:catalog_items,id'],
             'titulo' => ['required', 'string', 'max:160'],
-            'mensagem' => ['nullable', 'string', 'max:1000'],
+            'mensagem' => ['nullable', 'string', 'max:2500'],
+            'capa' => ['nullable', 'image', 'max:4096'],
+            'remove_capa' => ['nullable', 'boolean'],
             'preco_de' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
             'preco_por' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
             'desconto_percentual' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -37,6 +39,7 @@ class StoreCatalogPromoRequest extends FormRequest
             'catalog_item_id' => 'curso / palestra',
             'titulo' => 'título do aviso',
             'mensagem' => 'mensagem',
+            'capa' => 'imagem de capa',
             'preco_de' => 'preço de',
             'preco_por' => 'preço por',
             'desconto_percentual' => 'desconto (%)',

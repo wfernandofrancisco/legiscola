@@ -163,7 +163,7 @@
             <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <a href="{{ $tabUrl('aulas') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
                     <p class="text-sm font-semibold text-slate-900 dark:text-white">Aulas</p>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Cadastre e edite o calendário da turma.</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Monte a grade: dia, horário e modalidade.</p>
                 </a>
                 <a href="{{ $tabUrl('chamadas') }}" class="rounded-xl border border-slate-200 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-indigo-300 hover:bg-indigo-50/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/30">
                     <p class="text-sm font-semibold text-slate-900 dark:text-white">Chamadas</p>
@@ -186,71 +186,99 @@
         <div class="p-4 sm:p-6" role="tabpanel" aria-labelledby="tab-aulas">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">Aulas desta turma</h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Cadastre aqui; a chamada usa estas aulas.</p>
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">Grade desta turma</h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Data, horário e modalidade. Presença continua em cada aula desta lista.</p>
                 </div>
-                <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
-                   class="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-[opacity,transform] duration-150 hover:opacity-95 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                    Nova aula
-                </a>
             </div>
 
-            @if (($turmaLessons ?? collect())->isEmpty())
-                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center dark:border-slate-600 dark:bg-slate-900/40">
-                    <p class="font-semibold text-slate-800 dark:text-slate-100">Nenhuma aula ainda</p>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Crie a primeira aula para liberar chamadas.</p>
+            <form method="POST" action="{{ route('admin.turmas.grade.update', $turma) }}" class="space-y-4">
+                @csrf
+                @method('PUT')
+                @error('grade')
+                    <p class="text-sm text-red-600">{{ $message }}</p>
+                @enderror
+
+                @forelse ($turmaLessons as $i => $lessonRow)
+                    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-slate-900/40">
+                        <input type="hidden" name="grade[{{ $i }}][class_lesson_id]" value="{{ $lessonRow->id }}">
+                        @if ($lessonRow->course_lesson_id)
+                            <input type="hidden" name="grade[{{ $i }}][course_lesson_id]" value="{{ $lessonRow->course_lesson_id }}">
+                        @endif
+                        @if ($lessonRow->catalog_lesson_id)
+                            <input type="hidden" name="grade[{{ $i }}][catalog_lesson_id]" value="{{ $lessonRow->catalog_lesson_id }}">
+                        @endif
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <p class="font-semibold text-slate-900 dark:text-white">{{ $lessonRow->title }}</p>
+                            <div class="flex flex-wrap gap-2">
+                                @if ($lessonRow->isFromCatalog())
+                                    <span class="text-xs text-violet-700 dark:text-violet-300">Catálogo regional</span>
+                                @elseif ($lessonRow->isFromCourseContent())
+                                    <span class="text-xs text-indigo-600 dark:text-indigo-300">Aula do curso</span>
+                                @endif
+                                <a href="{{ route('admin.turmas.show', ['turma' => $turma, 'tab' => 'chamadas', 'lesson' => $lessonRow->id, 'date' => $lessonRow->date?->format('Y-m-d')]) }}#chamada-aberta"
+                                   class="text-xs font-semibold text-slate-600 hover:underline dark:text-slate-300">Abrir chamada</a>
+                                <a href="{{ route('admin.aulas.edit', $lessonRow) }}" class="text-xs font-semibold text-indigo-600 hover:underline">Vídeo / material desta turma</a>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                            <x-form.input :name="'grade['.$i.'][date]'" label="Data" type="date" :value="old('grade.'.$i.'.date', $lessonRow->date?->format('Y-m-d'))" />
+                            <x-form.input :name="'grade['.$i.'][start_time]'" label="Início" type="time" :value="old('grade.'.$i.'.start_time', $lessonRow->start_time ? substr((string) $lessonRow->start_time, 0, 5) : '')" />
+                            <x-form.input :name="'grade['.$i.'][end_time]'" label="Fim" type="time" :value="old('grade.'.$i.'.end_time', $lessonRow->end_time ? substr((string) $lessonRow->end_time, 0, 5) : '')" />
+                            <label class="mt-6 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="hidden" name="grade[{{ $i }}][is_online]" value="0">
+                                <input type="checkbox" name="grade[{{ $i }}][is_online]" value="1" @checked(old('grade.'.$i.'.is_online', $lessonRow->is_online))>
+                                Online
+                            </label>
+                        </div>
+                    </div>
+                @empty
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center dark:border-slate-600 dark:bg-slate-900/40">
+                        <p class="font-semibold text-slate-800 dark:text-slate-100">Nenhuma aula na grade</p>
+                        <p class="mt-1 text-sm text-slate-500">Cadastre as aulas no curso e inclua-as abaixo, ou crie uma aula avulsa.</p>
+                    </div>
+                @endforelse
+
+                @php $pendingGradeLessons = $pendingGradeLessons ?? []; @endphp
+                @foreach ($pendingGradeLessons as $pending)
+                    @php $idx = ($turmaLessons->count() ?? 0) + $loop->index; @endphp
+                    <div class="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                        @if ($pending['course_lesson_id'])
+                            <input type="hidden" name="grade[{{ $idx }}][course_lesson_id]" value="{{ $pending['course_lesson_id'] }}">
+                        @endif
+                        @if ($pending['catalog_lesson_id'])
+                            <input type="hidden" name="grade[{{ $idx }}][catalog_lesson_id]" value="{{ $pending['catalog_lesson_id'] }}">
+                        @endif
+                        <p class="mb-3 text-sm font-semibold text-amber-900 dark:text-amber-100">Incluir na grade: {{ $pending['title'] }}</p>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                            <x-form.input :name="'grade['.$idx.'][date]'" label="Data" type="date" :value="old('grade.'.$idx.'.date')" />
+                            <x-form.input :name="'grade['.$idx.'][start_time]'" label="Início" type="time" :value="old('grade.'.$idx.'.start_time', '19:00')" />
+                            <x-form.input :name="'grade['.$idx.'][end_time]'" label="Fim" type="time" :value="old('grade.'.$idx.'.end_time', '21:00')" />
+                            <label class="mt-6 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input type="hidden" name="grade[{{ $idx }}][is_online]" value="0">
+                                <input type="checkbox" name="grade[{{ $idx }}][is_online]" value="1" @checked(old('grade.'.$idx.'.is_online', $turma->tipo_turma === 'online'))>
+                                Online
+                            </label>
+                        </div>
+                    </div>
+                @endforeach
+
+                @if ($turmaLessons->isNotEmpty() || count($pendingGradeLessons))
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="submit" class="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                            Salvar grade
+                        </button>
+                        <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
+                           class="text-sm font-semibold text-slate-600 hover:underline dark:text-slate-300">
+                            Aula avulsa (fora do curso)
+                        </a>
+                    </div>
+                @else
                     <a href="{{ route('admin.aulas.create', ['course_class_id' => $turma->id]) }}"
-                       class="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Criar aula</a>
-                </div>
-            @else
-                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-600">
-                    <table class="w-full min-w-[36rem] text-left text-sm">
-                        <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
-                            <tr>
-                                <th class="px-4 py-3 font-semibold">Aula</th>
-                                <th class="px-4 py-3 font-semibold">Data / horário</th>
-                                <th class="px-4 py-3 font-semibold">Modalidade</th>
-                                <th class="px-4 py-3 text-right font-semibold">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                            @foreach ($turmaLessons as $lessonRow)
-                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
-                                    <td class="px-4 py-3">
-                                        <p class="font-semibold text-slate-900 dark:text-white">{{ $lessonRow->title }}</p>
-                                        @if ($lessonRow->isFromCatalog())
-                                            <p class="mt-1 text-xs text-violet-700 dark:text-violet-300">Vídeo e material vêm do catálogo regional</p>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-slate-700 dark:text-slate-300">
-                                        <p>{{ $lessonRow->date?->format('d/m/Y') ?? '—' }}</p>
-                                        <p class="text-xs text-slate-500">
-                                            {{ $lessonRow->start_time ? substr((string) $lessonRow->start_time, 0, 5) : '--:--' }}
-                                            às
-                                            {{ $lessonRow->end_time ? substr((string) $lessonRow->end_time, 0, 5) : '--:--' }}
-                                        </p>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <x-badge :color="$lessonRow->is_online ? 'blue' : 'green'" :text="$lessonRow->is_online ? 'Online' : 'Presencial'" />
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex flex-wrap items-center justify-end gap-2">
-                                            <a href="{{ route('admin.turmas.show', ['turma' => $turma, 'tab' => 'chamadas', 'lesson' => $lessonRow->id, 'date' => $lessonRow->date?->format('Y-m-d')]) }}#chamada-aberta"
-                                               class="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                                                Abrir chamada
-                                            </a>
-                                            <a href="{{ route('admin.aulas.edit', $lessonRow) }}"
-                                               class="inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                                Editar
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
+                       class="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
+                        Criar aula avulsa
+                    </a>
+                @endif
+            </form>
         </div>
         @endif
 

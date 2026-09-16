@@ -174,6 +174,38 @@ it('aceita upload de vídeo MP4 na aula', function () {
     Storage::disk('public')->assertExists($lesson->video_path);
 });
 
+it('mostra a barra de progresso na tela de aulas do catálogo', function () {
+    $director = catalogDirector(['SP']);
+    $item = catalogItemFor($director);
+
+    $this->actingAs($director)
+        ->get(route('diretor.catalogo.show', $item))
+        ->assertOk()
+        ->assertSee('js-ajax-upload-form', false)
+        ->assertSee('Enviando arquivo', false);
+});
+
+it('devolve json de redirect no upload ajax da aula', function () {
+    Storage::fake('public');
+
+    $director = catalogDirector(['SP']);
+    $item = catalogItemFor($director);
+
+    $this->actingAs($director)
+        ->post(route('diretor.catalogo.aulas.store', $item), [
+            'titulo' => 'Aula com progresso',
+            'video_file' => UploadedFile::fake()->create('aula-progresso.mp4', 1024, 'video/mp4'),
+        ], [
+            'Accept' => 'application/json',
+            'X-Requested-With' => 'XMLHttpRequest',
+        ])
+        ->assertOk()
+        ->assertJsonPath('redirect', route('diretor.catalogo.show', $item))
+        ->assertJsonPath('message', 'Aula adicionada.');
+
+    expect(CatalogLesson::query()->where('titulo', 'Aula com progresso')->exists())->toBeTrue();
+});
+
 it('arquivo enviado tem prioridade sobre o link na reprodução', function () {
     Storage::fake('public');
 

@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 
 class StoreCourseClassRequest extends FormRequest
 {
+    use Concerns\CourseClassFormMessages;
     public function authorize(): bool
     {
         return true;
@@ -51,6 +52,58 @@ class StoreCourseClassRequest extends FormRequest
                 'integer',
                 Rule::exists('teachers', 'id')->where(fn ($q) => $q->where('tenant_id', auth()->user()->tenant_id)),
             ],
+            'grade' => ['nullable', 'array'],
+            'grade.*.course_lesson_id' => ['nullable', 'integer', 'exists:course_lessons,id'],
+            'grade.*.catalog_lesson_id' => ['nullable', 'integer', 'exists:catalog_lessons,id'],
+            'grade.*.date' => ['nullable', 'date'],
+            'grade.*.start_time' => ['nullable', 'date_format:H:i'],
+            'grade.*.end_time' => ['nullable', 'date_format:H:i'],
+            'grade.*.is_online' => ['nullable', 'boolean'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            $course = \App\Models\Course::query()->find($this->integer('course_id'));
+            if (! $course) {
+                return;
+            }
+
+            $grade = collect($this->input('grade', []));
+            $scheduled = $grade->filter(fn ($row) => filled($row['date'] ?? null) && filled($row['start_time'] ?? null) && filled($row['end_time'] ?? null));
+
+            if ($course->isFromCatalog()) {
+                $course->loadMissing('catalogItem.lessons');
+                $expected = $course->catalogItem?->lessons->pluck('id')->all() ?? [];
+                if ($expected === []) {
+                    return;
+                }
+                $given = $scheduled->pluck('catalog_lesson_id')->map(fn ($id) => (int) $id)->all();
+                foreach ($expected as $id) {
+                    if (! in_array((int) $id, $given, true)) {
+                        $validator->errors()->add('grade', 'Monte a grade com data e horário de todas as aulas do curso.');
+
+                        return;
+                    }
+                }
+
+                return;
+            }
+
+            $expected = $course->lessons()->pluck('id')->all();
+            if ($expected === []) {
+                return;
+            }
+
+            $given = $scheduled->pluck('course_lesson_id')->map(fn ($id) => (int) $id)->all();
+            foreach ($expected as $id) {
+                if (! in_array((int) $id, $given, true)) {
+                    $validator->errors()->add('grade', 'Monte a grade com data e horário de todas as aulas do curso.');
+
+                    return;
+                }
+            }
+        });
     }
 }

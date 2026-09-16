@@ -10,7 +10,7 @@
         ];
     @endphp
 
-    <x-page-header title="Cursos" subtitle="Gerencie os cursos da Escola Legislativa." :items="$headerItems"
+    <x-page-header title="Cursos" subtitle="Cadastre o curso e as aulas de conteúdo. A grade (dias e horários) é por turma." :items="$headerItems"
         :action-href="route('admin.cursos.create')" action-text="Novo Curso" />
 
     <form method="GET" action="{{ route('admin.cursos.index') }}" class="mb-6">

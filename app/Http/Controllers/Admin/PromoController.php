@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreCatalogPromoContactRequest;
 use App\Models\CatalogLicense;
 use App\Models\CatalogPromo;
 use App\Services\CatalogPromoService;
@@ -39,12 +40,23 @@ class PromoController extends Controller
         ]);
     }
 
+    public function contact(StoreCatalogPromoContactRequest $request, CatalogPromo $promo): RedirectResponse
+    {
+        $this->authorize('contact', $promo);
+
+        $this->promos->storeContact($promo, $request->user(), $request->validated());
+
+        return back()->with('success', 'Mensagem enviada à direção regional. Eles veem o contato no painel de avisos.');
+    }
+
     public function dismiss(CatalogPromo $promo): RedirectResponse
     {
         $this->authorize('dismiss', $promo);
 
         $this->promos->dismiss($promo, request()->user());
 
-        return back()->with('success', 'Aviso fechado. Ele só volta se a direção regional atualizar o conteúdo.');
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', 'Aviso fechado. Ele não aparece mais até a direção regional atualizar o conteúdo.');
     }
 }

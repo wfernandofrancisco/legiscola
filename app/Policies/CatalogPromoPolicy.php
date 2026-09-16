@@ -49,4 +49,9 @@ class CatalogPromoPolicy
     {
         return $user->isTenantAdmin() && $this->view($user, $promo);
     }
+
+    public function contact(User $user, CatalogPromo $promo): bool
+    {
+        return $this->dismiss($user, $promo);
+    }
 }

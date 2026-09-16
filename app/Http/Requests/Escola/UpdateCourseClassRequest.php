@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 
 class UpdateCourseClassRequest extends FormRequest
 {
+    use Concerns\CourseClassFormMessages;
     public function authorize(): bool
     {
         return true;

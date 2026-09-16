@@ -89,7 +89,7 @@
         <div class="mb-3 flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Aulas</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400">
-                As câmaras recebem esta estrutura; o vídeo e o material continuam vindo daqui.
+                Conteúdo do curso: título, vídeo e material. Data, horário e presencial/online a câmara define na grade de cada turma.
             </p>
         </div>
 
@@ -167,7 +167,7 @@
                             class="border-t border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/40">
                             <form method="POST"
                                 action="{{ route('diretor.catalogo.aulas.update', [$item, $lesson]) }}"
-                                enctype="multipart/form-data" class="space-y-5">
+                                enctype="multipart/form-data" class="js-ajax-upload-form space-y-5">
                                 @csrf
                                 @method('PUT')
 
@@ -183,6 +183,8 @@
                                         Salvar aula
                                     </button>
                                 </div>
+
+                                @include('partials.ajax-form-upload-progress')
                             </form>
                         </div>
                     </div>
@@ -203,7 +205,7 @@
                 <span>
                     <span class="block text-sm font-bold text-indigo-900 dark:text-indigo-100">Adicionar aula</span>
                     <span class="block text-xs text-indigo-700/80 dark:text-indigo-300/80">
-                        Clique para cadastrar vídeo, material e descrição
+                        Só o conteúdo. Datas e horários a câmara monta na turma.
                     </span>
                 </span>
             </span>
@@ -221,7 +223,7 @@
 
         <div x-show="aberto" x-cloak class="border-t border-indigo-200 bg-white p-5 dark:border-indigo-800/60 dark:bg-slate-900">
             <form method="POST" action="{{ route('diretor.catalogo.aulas.store', $item) }}"
-                enctype="multipart/form-data" class="space-y-5">
+                enctype="multipart/form-data" class="js-ajax-upload-form space-y-5">
                 @csrf
 
                 @include('director.catalogo.includes._lesson-fields', ['lesson' => null])
@@ -232,6 +234,8 @@
                         Salvar nova aula
                     </button>
                 </div>
+
+                @include('partials.ajax-form-upload-progress')
             </form>
         </div>
     </section>

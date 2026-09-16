@@ -60,6 +60,19 @@ class Course extends Model
         return $this->hasMany(CourseClass::class);
     }
 
+    /**
+     * Aulas de conteúdo deste curso (sem data/hora).
+     */
+    public function lessons(): HasMany
+    {
+        return $this->hasMany(CourseLesson::class)->orderBy('ordem')->orderBy('id');
+    }
+
+    public function courseLessons(): HasMany
+    {
+        return $this->lessons();
+    }
+
     public function admin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_user_id');

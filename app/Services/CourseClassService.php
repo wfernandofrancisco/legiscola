@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class CourseClassService implements CourseClassServiceInterface
 {
-    public function __construct(private CourseClassRepositoryInterface $courseClassRepository) {}
+    public function __construct(
+        private CourseClassRepositoryInterface $courseClassRepository,
+        private TurmaGradeService $gradeService,
+    ) {}
 
     public function paginateFiltered(int $perPage = 15, ?string $search = null, ?string $status = null): LengthAwarePaginator
     {
@@ -28,7 +31,8 @@ class CourseClassService implements CourseClassServiceInterface
             if (($data['tipo_turma'] ?? 'presencial') === 'online') {
                 $schedules = [];
             }
-            unset($data['schedules'], $data['course_search']);
+            $grade = $data['grade'] ?? [];
+            unset($data['schedules'], $data['course_search'], $data['grade']);
             $teacherIds = $this->normalizeTeacherIds($data['teacher_ids'] ?? []);
             unset($data['teacher_ids']);
             $data['tenant_id'] = TenantContext::getTenantId();
@@ -41,6 +45,7 @@ class CourseClassService implements CourseClassServiceInterface
             $courseClass = $this->courseClassRepository->create($data);
             $this->syncSchedules($courseClass, $schedules);
             $this->syncTeachers($courseClass, $teacherIds);
+            $this->gradeService->materialize($courseClass, is_array($grade) ? array_values($grade) : []);
 
             return $courseClass;
         });
@@ -53,7 +58,8 @@ class CourseClassService implements CourseClassServiceInterface
             if (($data['tipo_turma'] ?? $courseClass->tipo_turma) === 'online') {
                 $schedules = [];
             }
-            unset($data['schedules'], $data['course_search']);
+            $grade = $data['grade'] ?? null;
+            unset($data['schedules'], $data['course_search'], $data['grade']);
             $teacherIds = $this->normalizeTeacherIds($data['teacher_ids'] ?? []);
             unset($data['teacher_ids']);
             $data['satisfaction_survey_id'] = $data['satisfaction_survey_id'] ?? null;
@@ -64,6 +70,9 @@ class CourseClassService implements CourseClassServiceInterface
             $updated = $this->courseClassRepository->update($courseClass, $data);
             $this->syncSchedules($courseClass, $schedules);
             $this->syncTeachers($courseClass, $teacherIds);
+            if (is_array($grade)) {
+                $this->gradeService->sync($courseClass, array_values($grade));
+            }
 
             return $updated;
         });

@@ -142,6 +142,7 @@ use App\Services\Portal\PortalHomeService;
 use App\Services\Portal\PortalThemeService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use App\View\Composers\AdminLayoutComposer;
 use App\View\Composers\PortalComposer;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
@@ -238,5 +239,6 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, LogSuccessfulLogout::class);
 
         View::composer(['layouts.portal', 'portal.*', 'auth.tenant-verify-email'], PortalComposer::class);
+        View::composer(['components.layouts.admin', 'admin.*'], AdminLayoutComposer::class);
     }
 }

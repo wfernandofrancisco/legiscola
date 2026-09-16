@@ -75,6 +75,48 @@
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
+        @if ($action !== 'edit')
+        <div class="md:col-span-3" id="grade-wrapper">
+            <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-800 dark:bg-indigo-950/20">
+                <div class="mb-3">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Grade desta turma</p>
+                    <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                        Lista as aulas do curso. Aqui você define dia, horário e se é presencial ou online.
+                        O conteúdo (vídeo/material) continua no curso.
+                    </p>
+                </div>
+                <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">1ª aula</label>
+                        <input type="date" id="grade-fill-date" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Intervalo (dias)</label>
+                        <input type="number" id="grade-fill-interval" value="7" min="1" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Início</label>
+                        <input type="time" id="grade-fill-start" value="19:00" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Término</label>
+                        <input type="time" id="grade-fill-end" value="21:00" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                    </div>
+                </div>
+                <button type="button" id="grade-fill-btn"
+                    class="mb-4 rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200">
+                    Preencher datas em sequência
+                </button>
+                @error('grade')
+                    <p class="mb-3 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                <div id="grade-empty" class="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-400">
+                    Selecione um curso com aulas cadastradas para montar a grade.
+                </div>
+                <div id="grade-rows" class="hidden space-y-3"></div>
+            </div>
+        </div>
+        @endif
         <div class="md:col-span-3" id="schedule-wrapper">
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div class="flex items-center justify-between mb-3">
@@ -133,10 +175,15 @@
 
                 var timer;
                 var endpoint = @json(route('admin.cursos.search'));
+                var gradeUrlTpl = @json(url('/admin/escola/cursos/__ID__/aulas-grade'));
                 var tipoTurma = document.querySelector('[name="tipo_turma"]');
                 var scheduleWrapper = document.getElementById('schedule-wrapper');
                 var scheduleRows = document.getElementById('schedule-rows');
                 var addScheduleRow = document.getElementById('add-schedule-row');
+                var gradeRows = document.getElementById('grade-rows');
+                var gradeEmpty = document.getElementById('grade-empty');
+                var gradeFillBtn = document.getElementById('grade-fill-btn');
+                var oldGrade = @json(old('grade', []));
 
                 function hideResults() {
                     resultsBox.classList.add('hidden');
@@ -147,6 +194,7 @@
                     courseId.value = course.id;
                     courseSearch.value = course.name;
                     hideResults();
+                    loadGrade(course.id);
                 }
 
                 function renderResults(courses) {
@@ -195,6 +243,77 @@
                         hideResults();
                     }
                 });
+
+                function isOnlineDefault() {
+                    return tipoTurma && tipoTurma.value === 'online';
+                }
+
+                function addDays(iso, days) {
+                    var d = new Date(iso + 'T00:00:00');
+                    d.setDate(d.getDate() + days);
+                    var m = String(d.getMonth() + 1).padStart(2, '0');
+                    var day = String(d.getDate()).padStart(2, '0');
+                    return d.getFullYear() + '-' + m + '-' + day;
+                }
+
+                function renderGrade(lessons) {
+                    if (!gradeRows || !gradeEmpty) return;
+                    if (!lessons.length) {
+                        gradeRows.innerHTML = '';
+                        gradeRows.classList.add('hidden');
+                        gradeEmpty.classList.remove('hidden');
+                        gradeEmpty.textContent = 'Este curso ainda não tem aulas de conteúdo. Cadastre as aulas no curso e volte aqui.';
+                        return;
+                    }
+                    gradeEmpty.classList.add('hidden');
+                    gradeRows.classList.remove('hidden');
+                    gradeRows.innerHTML = lessons.map(function (lesson, index) {
+                        var old = oldGrade[index] || {};
+                        var courseLessonId = lesson.course_lesson_id || '';
+                        var catalogLessonId = lesson.catalog_lesson_id || '';
+                        var onlineChecked = old.is_online !== undefined ? !!Number(old.is_online) : isOnlineDefault();
+                        return '<div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">'
+                            + '<p class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">' + (index + 1) + '. ' + lesson.title + '</p>'
+                            + (courseLessonId ? '<input type="hidden" name="grade[' + index + '][course_lesson_id]" value="' + courseLessonId + '">' : '')
+                            + (catalogLessonId ? '<input type="hidden" name="grade[' + index + '][catalog_lesson_id]" value="' + catalogLessonId + '">' : '')
+                            + '<div class="grid grid-cols-1 gap-2 sm:grid-cols-4">'
+                            + '<input type="date" name="grade[' + index + '][date]" value="' + (old.date || '') + '" class="js-grade-date rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
+                            + '<input type="time" name="grade[' + index + '][start_time]" value="' + (old.start_time || '19:00') + '" class="js-grade-start rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
+                            + '<input type="time" name="grade[' + index + '][end_time]" value="' + (old.end_time || '21:00') + '" class="js-grade-end rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
+                            + '<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><input type="hidden" name="grade[' + index + '][is_online]" value="0"><input type="checkbox" name="grade[' + index + '][is_online]" value="1"' + (onlineChecked ? ' checked' : '') + '> Online</label>'
+                            + '</div></div>';
+                    }).join('');
+                }
+
+                function loadGrade(id) {
+                    if (!id || !gradeRows) return;
+                    fetch(gradeUrlTpl.replace('__ID__', id), {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                    })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) { renderGrade(data.lessons || []); })
+                    .catch(function () { renderGrade([]); });
+                }
+
+                if (gradeFillBtn) {
+                    gradeFillBtn.addEventListener('click', function () {
+                        var start = document.getElementById('grade-fill-date').value;
+                        var interval = parseInt(document.getElementById('grade-fill-interval').value, 10) || 7;
+                        var tStart = document.getElementById('grade-fill-start').value;
+                        var tEnd = document.getElementById('grade-fill-end').value;
+                        if (!start) return;
+                        var dates = gradeRows.querySelectorAll('.js-grade-date');
+                        dates.forEach(function (input, i) {
+                            input.value = addDays(start, i * interval);
+                        });
+                        gradeRows.querySelectorAll('.js-grade-start').forEach(function (input) { input.value = tStart; });
+                        gradeRows.querySelectorAll('.js-grade-end').forEach(function (input) { input.value = tEnd; });
+                    });
+                }
+
+                if (courseId && courseId.value) {
+                    loadGrade(courseId.value);
+                }
 
                 function toggleScheduleVisibility() {
                     if (!tipoTurma || !scheduleWrapper) return;

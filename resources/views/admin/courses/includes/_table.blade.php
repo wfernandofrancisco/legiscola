@@ -4,6 +4,7 @@
             <tr>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Curso</th>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Carga Horária</th>
+                <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Aulas</th>
                 <th class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-left">Status</th>
                 <th class="px-6 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">Ações</th>
             </tr>
@@ -17,6 +18,7 @@
                             {{ $course->description ?: 'Sem descrição' }}</p>
                     </td>
                     <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $course->workload_hours }}h</td>
+                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ $course->lessons_count ?? $course->lessons()->count() }} aulas</td>
                     @php
                         $statusMap = [
                             'rascunho' => ['label' => 'Rascunho', 'color' => 'yellow'],
@@ -58,7 +60,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">Nenhum curso
+                    <td colspan="5" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">Nenhum curso
                         encontrado.</td>
                 </tr>
             @endforelse

@@ -211,6 +211,15 @@ return [
         'state'                 => 'estado',
         'neighborhood'          => 'bairro',
         'trade_name'            => 'nome fantasia',
+        'schedules'             => 'horários da turma',
+        'schedules.*.weekday'   => 'dia da semana',
+        'schedules.*.start_time'=> 'horário de início',
+        'schedules.*.end_time'  => 'horário de término',
+        'course_id'             => 'curso',
+        'tipo_turma'            => 'tipo da turma',
+        'max_seats'             => 'vagas',
+        'enrollment_start'      => 'início das inscrições',
+        'enrollment_end'        => 'fim das inscrições',
     ],
 
 ];

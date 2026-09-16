@@ -163,8 +163,8 @@
                 @elseif ($semAulas)
                     Este curso ainda não tem aulas publicadas pela direção regional.
                 @else
-                    As {{ $item->lessons->count() }} aulas são criadas automaticamente a partir da data da primeira
-                    aula. Você pode ajustar cada data depois.
+                    As {{ $item->lessons->count() }} aulas do diretor são o conteúdo. Aqui você monta a
+                    <strong>grade desta turma</strong> (dias e horários). Presença fica em cada aula da grade.
                 @endif
             </p>
         </div>
@@ -200,17 +200,43 @@
                             :value="old('title', $item->titulo)" />
                     </div>
 
-                    <x-form.input name="date_time" label="Data e hora" type="datetime-local" required
-                        :value="old('date_time', $licenca->palestra_em?->format('Y-m-d\TH:i'))"
-                        :hint="$licenca->modalidade ? 'Sugestão da direção: '.$licenca->modalidade->label() : null" />
+                    @if ($licenca->locksPalestraModalidade())
+                        <div>
+                            <x-form.select name="modalidade_display" label="Modalidade" disabled
+                                :options="\App\Enums\CatalogLicenseModalidade::options()"
+                                :selected="$licenca->modalidade->value"
+                                hint="Definido pela direção regional — não pode ser alterado." />
+                        </div>
+                    @endif
+
+                    @if ($licenca->locksPalestraDate())
+                        <div>
+                            <x-form.input name="date_time_display" label="Data e hora" type="datetime-local" disabled
+                                :value="$licenca->palestra_em->format('Y-m-d\TH:i')"
+                                hint="Definido pela direção regional — não pode ser alterado." />
+                            <input type="hidden" name="date_time" value="{{ $licenca->palestra_em->format('Y-m-d\TH:i') }}">
+                        </div>
+                    @else
+                        <x-form.input name="date_time" label="Data e hora" type="datetime-local" required
+                            :value="old('date_time')" />
+                    @endif
 
                     <x-form.input name="palestrante_nome" label="Palestrante"
                         :value="old('palestrante_nome', $licenca->professor_nome)"
                         :hint="$licenca->professor_nome ? 'Sugestão da direção regional.' : null" />
 
-                    <x-form.input name="max_seats" label="Vagas" type="number"
-                        :value="old('max_seats', $licenca->max_inscritos)"
-                        :hint="$licenca->max_inscritos ? 'Limite combinado com a direção regional.' : 'Em branco = sem limite.'" />
+                    @if ($licenca->locksPalestraSeats())
+                        <div>
+                            <x-form.input name="max_seats_display" label="Vagas" type="number" disabled
+                                :value="$licenca->max_inscritos"
+                                hint="Definido pela direção regional — não pode ser alterado." />
+                            <input type="hidden" name="max_seats" value="{{ $licenca->max_inscritos }}">
+                        </div>
+                    @else
+                        <x-form.input name="max_seats" label="Vagas" type="number"
+                            :value="old('max_seats')"
+                            hint="Em branco = sem limite." />
+                    @endif
 
                     <div class="flex items-center gap-6 pt-1">
                         {{-- Checkbox desmarcado não é enviado; o hidden garante o "não". --}}
@@ -276,9 +302,12 @@
                 </div>
 
                 <div class="border-t border-slate-200 pt-5 dark:border-slate-700">
-                    <p class="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Calendário das aulas</p>
+                    <p class="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Grade das aulas</p>
+                    <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+                        Preencha a 1ª aula e o intervalo para sugerir as datas, depois ajuste cada aula se precisar (horário diferente, presencial etc.).
+                    </p>
 
-                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         <x-form.date name="data_inicio" label="Data da 1ª aula" required
                             :value="old('data_inicio')" />
 
@@ -291,6 +320,29 @@
                         <x-form.input name="hora_fim" label="Término" type="time" required
                             :value="old('hora_fim', '21:00')" />
                     </div>
+
+                    @php $catalogLessons = $item->lessons ?? collect(); @endphp
+                    @if ($catalogLessons->isNotEmpty())
+                        <div class="space-y-3" id="catalog-grade">
+                            @foreach ($catalogLessons as $i => $catalogLesson)
+                                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                                    <input type="hidden" name="grade[{{ $i }}][catalog_lesson_id]" value="{{ $catalogLesson->id }}">
+                                    <p class="mb-2 text-sm font-semibold text-slate-900 dark:text-white">{{ $loop->iteration }}. {{ $catalogLesson->titulo }}</p>
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-4">
+                                        <x-form.input :name="'grade['.$i.'][date]'" label="Data" type="date" :value="old('grade.'.$i.'.date')" />
+                                        <x-form.input :name="'grade['.$i.'][start_time]'" label="Início" type="time" :value="old('grade.'.$i.'.start_time', '19:00')" />
+                                        <x-form.input :name="'grade['.$i.'][end_time]'" label="Fim" type="time" :value="old('grade.'.$i.'.end_time', '21:00')" />
+                                        <label class="mt-6 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                            <input type="hidden" name="grade[{{ $i }}][is_online]" value="0">
+                                            <input type="checkbox" name="grade[{{ $i }}][is_online]" value="1" class="js-catalog-online"
+                                                @checked(old('grade.'.$i.'.is_online', old('tipo_turma', 'online') === 'online'))>
+                                            Online
+                                        </label>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="flex justify-end">
@@ -302,4 +354,42 @@
             </form>
         @endif
     </section>
+    @push('scripts')
+        <script>
+            (function () {
+                var start = document.querySelector('[name="data_inicio"]');
+                var interval = document.querySelector('[name="intervalo_dias"]');
+                var hStart = document.querySelector('[name="hora_inicio"]');
+                var hEnd = document.querySelector('[name="hora_fim"]');
+                var wrap = document.getElementById('catalog-grade');
+                if (!start || !wrap) return;
+
+                function addDays(iso, days) {
+                    var d = new Date(iso + 'T00:00:00');
+                    d.setDate(d.getDate() + days);
+                    var m = String(d.getMonth() + 1).padStart(2, '0');
+                    var day = String(d.getDate()).padStart(2, '0');
+                    return d.getFullYear() + '-' + m + '-' + day;
+                }
+
+                function fill() {
+                    if (!start.value) return;
+                    var step = parseInt((interval && interval.value) || '7', 10) || 7;
+                    wrap.querySelectorAll('input[type="date"]').forEach(function (input, i) {
+                        input.value = addDays(start.value, i * step);
+                    });
+                    if (hStart) wrap.querySelectorAll('input[type="time"][name*="[start_time]"]').forEach(function (input) {
+                        input.value = hStart.value;
+                    });
+                    if (hEnd) wrap.querySelectorAll('input[type="time"][name*="[end_time]"]').forEach(function (input) {
+                        input.value = hEnd.value;
+                    });
+                }
+
+                [start, interval, hStart, hEnd].forEach(function (el) {
+                    if (el) el.addEventListener('change', fill);
+                });
+            })();
+        </script>
+    @endpush
 </x-layouts.admin>

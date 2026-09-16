@@ -135,13 +135,13 @@ class AulaController extends Controller
     {
         $student = $this->requireStudent();
         $classLesson = $this->resolveEnrolledLesson($student, $classLesson);
-        $classLesson->loadMissing('catalogLesson');
+        $classLesson->loadMissing('catalogLesson', 'courseLesson');
 
         abort_unless($classLesson->effectiveVideoIsNative(), 404);
 
         $path = filled($classLesson->video_path)
             ? $classLesson->video_path
-            : $classLesson->catalogLesson?->video_path;
+            : ($classLesson->courseLesson?->video_path ?: $classLesson->catalogLesson?->video_path);
 
         abort_unless($path && Storage::disk('public')->exists($path), 404);
 
@@ -157,10 +157,10 @@ class AulaController extends Controller
 
     private function resolveVideoMimeType(ClassLesson $classLesson): string
     {
-        $classLesson->loadMissing('catalogLesson');
+        $classLesson->loadMissing('catalogLesson', 'courseLesson');
         $path = filled($classLesson->video_path)
             ? $classLesson->video_path
-            : ($classLesson->catalogLesson?->video_path ?? '');
+            : ($classLesson->courseLesson?->video_path ?: ($classLesson->catalogLesson?->video_path ?? ''));
 
         return $this->mimeFromPath((string) $path);
     }

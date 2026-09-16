@@ -22,6 +22,7 @@ class ClassLesson extends Model
         'tenant_id',
         'course_class_id',
         'catalog_lesson_id',
+        'course_lesson_id',
         'title',
         'date',
         'start_time',
@@ -57,12 +58,25 @@ class ClassLesson extends Model
         return $this->belongsTo(CatalogLesson::class);
     }
 
+    public function courseLesson(): BelongsTo
+    {
+        return $this->belongsTo(CourseLesson::class);
+    }
+
     /**
      * Aula materializada a partir do catálogo de um diretor.
      */
     public function isFromCatalog(): bool
     {
         return $this->catalog_lesson_id !== null;
+    }
+
+    /**
+     * Aula da grade ligada a uma aula de conteúdo do curso da câmara.
+     */
+    public function isFromCourseContent(): bool
+    {
+        return $this->course_lesson_id !== null;
     }
 
     public function isUploadedVideo(): bool
@@ -82,7 +96,7 @@ class ClassLesson extends Model
     /**
      * Vídeo exibido para o aluno.
      *
-     * Prioridade: arquivo anexado na câmara → link local → conteúdo do catálogo regional.
+     * Prioridade: arquivo na turma → link na turma → aula do curso → catálogo regional.
      */
     public function effectiveVideoUrl(): ?string
     {
@@ -94,7 +108,8 @@ class ClassLesson extends Model
             return $this->video_url;
         }
 
-        return $this->catalogLesson?->effectiveVideoUrl();
+        return $this->courseLesson?->effectiveVideoUrl()
+            ?: $this->catalogLesson?->effectiveVideoUrl();
     }
 
     /**
@@ -111,7 +126,7 @@ class ClassLesson extends Model
             return false;
         }
 
-        return (bool) $this->catalogLesson?->isUploadedVideo();
+        return (bool) ($this->courseLesson?->isUploadedVideo() ?: $this->catalogLesson?->isUploadedVideo());
     }
 
     /**
@@ -125,6 +140,14 @@ class ClassLesson extends Model
 
         if (filled($this->video_url)) {
             return VideoEmbed::detectProvider($this->video_url)?->label() ?? 'Link externo';
+        }
+
+        if ($this->courseLesson?->isUploadedVideo()) {
+            return 'Arquivo do curso';
+        }
+
+        if ($this->courseLesson?->hasVideo()) {
+            return VideoEmbed::detectProvider($this->courseLesson->video_url)?->label() ?? 'Aula do curso';
         }
 
         if ($this->catalogLesson?->isUploadedVideo()) {
@@ -148,7 +171,8 @@ class ClassLesson extends Model
             return $this->material_url;
         }
 
-        return $this->catalogLesson?->materialDownloadUrl();
+        return $this->courseLesson?->materialDownloadUrl()
+            ?: $this->catalogLesson?->materialDownloadUrl();
     }
 
     public function effectiveMaterialName(): ?string
@@ -159,6 +183,10 @@ class ClassLesson extends Model
 
         if (filled($this->material_url)) {
             return $this->material_file_name ?: 'Material da aula';
+        }
+
+        if ($this->courseLesson?->hasMaterial()) {
+            return $this->courseLesson->material_file_name ?: 'Material da aula';
         }
 
         return $this->catalogLesson?->material_file_name ?: ($this->catalogLesson?->material_url ? 'Material da aula' : null);

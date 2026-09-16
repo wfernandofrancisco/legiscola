@@ -4,13 +4,16 @@ namespace App\Services;
 
 use App\Models\CatalogItem;
 use App\Models\CatalogPromo;
+use App\Models\CatalogPromoContact;
 use App\Models\CatalogPromoDismissal;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Scopes\TenantScope;
 use App\Support\DirectorContext;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class CatalogPromoService
@@ -39,12 +42,17 @@ class CatalogPromoService
             $promo->tenants()->sync($tenantIds);
         }
 
-        return $promo;
+        $this->syncCover($promo, $data);
+
+        return $promo->fresh(['catalogItem', 'tenants']);
     }
 
     public function update(CatalogPromo $promo, array $data): CatalogPromo
     {
-        $item = $this->assertOwnItem($promo->director, (int) ($data['catalog_item_id'] ?? $promo->catalog_item_id));
+        $item = $this->assertOwnItem(
+            $promo->director()->withoutGlobalScopes([TenantScope::class])->first() ?? $promo->director,
+            (int) ($data['catalog_item_id'] ?? $promo->catalog_item_id)
+        );
         $alcance = $data['alcance'] ?? $promo->alcance;
         $tenantIds = $this->resolveTenantIds($alcance, $data['tenant_ids'] ?? []);
 
@@ -71,7 +79,15 @@ class CatalogPromoService
         // Touch explícito: qualquer edição deve poder reaparecer no dashboard do admin.
         $promo->touch();
 
+        $this->syncCover($promo, $data);
+
         return $promo->fresh(['catalogItem', 'tenants']);
+    }
+
+    public function delete(CatalogPromo $promo): void
+    {
+        $this->deleteFile($promo->capa_path);
+        $promo->delete();
     }
 
     public function dismiss(CatalogPromo $promo, User $user): void
@@ -86,6 +102,25 @@ class CatalogPromoService
                 'dismissed_at' => now(),
             ]
         );
+    }
+
+    public function storeContact(CatalogPromo $promo, User $admin, array $data): CatalogPromoContact
+    {
+        if (! $admin->tenant_id) {
+            throw ValidationException::withMessages([
+                'nome' => 'Só o admin da câmara pode enviar este contato.',
+            ]);
+        }
+
+        return CatalogPromoContact::query()->create([
+            'catalog_promo_id' => $promo->id,
+            'director_user_id' => $promo->director_user_id,
+            'tenant_id' => (int) $admin->tenant_id,
+            'user_id' => $admin->id,
+            'nome' => $data['nome'],
+            'whatsapp' => preg_replace('/\D+/', '', (string) $data['whatsapp']),
+            'interesse' => $data['interesse'],
+        ]);
     }
 
     /**
@@ -126,6 +161,33 @@ class CatalogPromoService
         }
 
         return $item;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncCover(CatalogPromo $promo, array $data): void
+    {
+        if (($capa = $data['capa'] ?? null) instanceof UploadedFile) {
+            $this->deleteFile($promo->capa_path);
+            $promo->capa_path = $capa->store('catalog/promos/'.$promo->director_user_id, 'public');
+            $promo->save();
+
+            return;
+        }
+
+        if (! empty($data['remove_capa'])) {
+            $this->deleteFile($promo->capa_path);
+            $promo->capa_path = null;
+            $promo->save();
+        }
+    }
+
+    private function deleteFile(?string $path): void
+    {
+        if (filled($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     /**

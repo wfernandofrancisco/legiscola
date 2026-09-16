@@ -1,7 +1,7 @@
 <x-layouts.admin>
     <x-slot name="title">Aulas</x-slot>
     <x-breadcrumb :items="$breadcrumbs ?? []" />
-    <x-page-header title="Aulas da Turma" subtitle="Gerencie as aulas presenciais e EAD." :action-href="route('admin.aulas.create')" action-text="Nova Aula" />
+    <x-page-header title="Aulas da turma" subtitle="Grade (data e horário) de cada turma. O conteúdo fica no curso ou no catálogo." :action-href="route('admin.aulas.create')" action-text="Aula avulsa" />
 
     <form method="GET" action="{{ route('admin.aulas.index') }}" class="mb-6">
         <x-filter-panel title="Pesquisa e filtros" subtitle="Filtre por título ou turma.">

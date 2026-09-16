@@ -12,6 +12,7 @@ use App\Http\Requests\Escola\StoreCourseClassRequest;
 use App\Http\Requests\Escola\UpdateCourseClassQuizWindowsRequest;
 use App\Http\Requests\Escola\UpdateCourseClassRequest;
 use App\Http\Requests\Escola\UpdateEnrollmentStatusRequest;
+use App\Http\Requests\Escola\UpdateTurmaGradeRequest;
 use App\Jobs\ProcessCourseClassAnnouncementJob;
 use App\Models\Attendance;
 use App\Models\Certificate;
@@ -25,6 +26,7 @@ use App\Models\Student;
 use App\Models\SatisfactionSurvey;
 use App\Models\TenantAdminSetting;
 use App\Support\CourseClassAttendance;
+use App\Services\TurmaGradeService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -41,7 +43,8 @@ class CourseClassCrudController extends Controller
 
     public function __construct(
         private CourseClassServiceInterface $service,
-        private EnrollmentServiceInterface $enrollmentService
+        private EnrollmentServiceInterface $enrollmentService,
+        private TurmaGradeService $gradeService,
     ) {}
 
     public function index(Request $request): View
@@ -80,7 +83,16 @@ class CourseClassCrudController extends Controller
     {
         $this->service->create($request->validated());
 
-        return redirect()->route('admin.turmas.index')->with('success', 'Turma criada com sucesso.');
+        return redirect()->route('admin.turmas.index')->with('success', 'Turma criada com a grade das aulas.');
+    }
+
+    public function updateGrade(UpdateTurmaGradeRequest $request, CourseClass $turma): RedirectResponse
+    {
+        $this->gradeService->sync($turma, array_values($request->validated()['grade'] ?? []));
+
+        return redirect()
+            ->route('admin.turmas.show', ['turma' => $turma, 'tab' => 'aulas'])
+            ->with('success', 'Grade da turma atualizada. Presenças continuam nas mesmas aulas.');
     }
 
     public function edit(CourseClass $turma): View
@@ -112,7 +124,9 @@ class CourseClassCrudController extends Controller
     {
         $turma->load([
             'linkedQuizzes' => fn ($q) => $q->orderBy('title'),
-            'course:id,name,workload_hours,catalog_license_id',
+            'course:id,name,workload_hours,catalog_license_id,catalog_item_id',
+            'course.lessons',
+            'course.catalogItem.lessons',
             'course.catalogLicense:id,professor_nome,exibir_ate,director_user_id',
             'course.catalogLicense.director:id,name',
             'teachers:id,full_name,email',
@@ -181,6 +195,7 @@ class CourseClassCrudController extends Controller
         }
 
         $turmaLessons = ClassLesson::orderedForCourseClass((int) $turma->id);
+        $pendingGradeLessons = $this->pendingGradeLessons($turma, $turmaLessons);
         $attendanceSheet = $this->prepareAttendanceSheetContext($request, $turma);
 
         return view('admin.course-classes.show', array_merge([
@@ -195,6 +210,7 @@ class CourseClassCrudController extends Controller
             'recentAnnouncements' => $recentAnnouncements,
             'surveyCompletedByStudent' => $surveyCompletedByStudent,
             'turmaLessons' => $turmaLessons,
+            'pendingGradeLessons' => $pendingGradeLessons,
         ], $attendanceSheet));
     }
 
@@ -698,6 +714,52 @@ class CourseClassCrudController extends Controller
         $filename = 'chamada-'.str($turma->name)->slug().'-'.str($lesson->title)->slug().'-'.$date.'.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    /**
+     * Aulas do curso/catálogo que ainda não estão na grade desta turma.
+     *
+     * @param  Collection<int, ClassLesson>  $turmaLessons
+     * @return list<array{title: string, course_lesson_id: ?int, catalog_lesson_id: ?int}>
+     */
+    private function pendingGradeLessons(CourseClass $turma, Collection $turmaLessons): array
+    {
+        $course = $turma->course;
+        if (! $course) {
+            return [];
+        }
+
+        $usedCourse = $turmaLessons->pluck('course_lesson_id')->filter()->map(fn ($id) => (int) $id);
+        $usedCatalog = $turmaLessons->pluck('catalog_lesson_id')->filter()->map(fn ($id) => (int) $id);
+        $pending = [];
+
+        if ($course->isFromCatalog()) {
+            foreach ($course->catalogItem?->lessons ?? [] as $lesson) {
+                if ($usedCatalog->contains((int) $lesson->id)) {
+                    continue;
+                }
+                $pending[] = [
+                    'title' => $lesson->titulo,
+                    'course_lesson_id' => null,
+                    'catalog_lesson_id' => (int) $lesson->id,
+                ];
+            }
+
+            return $pending;
+        }
+
+        foreach ($course->lessons as $lesson) {
+            if ($usedCourse->contains((int) $lesson->id)) {
+                continue;
+            }
+            $pending[] = [
+                'title' => $lesson->title,
+                'course_lesson_id' => (int) $lesson->id,
+                'catalog_lesson_id' => null,
+            ];
+        }
+
+        return $pending;
     }
 
     /**

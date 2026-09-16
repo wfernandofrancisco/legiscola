@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Banner de aviso/promoção do diretor para o admin da câmara.
@@ -31,6 +32,7 @@ class CatalogPromo extends Model
         'inicia_em',
         'termina_em',
         'ativo',
+        'capa_path',
     ];
 
     protected function casts(): array
@@ -66,9 +68,21 @@ class CatalogPromo extends Model
         return $this->hasMany(CatalogPromoDismissal::class);
     }
 
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(CatalogPromoContact::class);
+    }
+
     public function isGeral(): bool
     {
         return $this->alcance === self::ALCANCE_GERAL;
+    }
+
+    public function coverUrl(): ?string
+    {
+        $path = $this->capa_path ?: $this->catalogItem?->capa_path;
+
+        return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
     public function isWithinSchedule(?\DateTimeInterface $hoje = null): bool
@@ -101,14 +115,14 @@ class CatalogPromo extends Model
     }
 
     /**
-     * Visível para a câmara (ativa) do admin — geral nas UFs do diretor ou pivot específico.
+     * Visível para a câmara operacional do admin (status ativo), mesmo com cadastro pendente.
+     * Alcance geral nas UFs do diretor, ou pivot específico.
      */
     public function scopeForTenant(Builder $query, int $tenantId): Builder
     {
         $tenant = Tenant::query()
             ->whereKey($tenantId)
             ->where('status', Tenant::STATUS_ATIVO)
-            ->where('cadastro_status', Tenant::CADASTRO_ATIVO)
             ->first();
 
         if (! $tenant || ! filled($tenant->estado)) {

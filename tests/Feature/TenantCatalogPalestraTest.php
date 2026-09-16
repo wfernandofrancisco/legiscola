@@ -257,6 +257,58 @@ it('usa data e vagas da licença ao agendar se a câmara não informar', functio
         ->and($evento->max_seats)->toBe(90);
 });
 
+it('trava data, vagas e modalidade que o diretor já definiu', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    $licenca = palestraLicense($director, $tenant, overrides: [
+        'palestra_em' => '2027-09-10 20:00:00',
+        'max_inscritos' => 90,
+        'modalidade' => 'presencial',
+    ]);
+
+    $admin = palestraAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/catalogo-regional/'.$licenca->id)
+        ->assertOk()
+        ->assertSee('Definido pela direção regional')
+        ->assertSee('Presencial')
+        ->assertSee('date_time_display', false)
+        ->assertSee('max_seats_display', false)
+        ->assertSee('modalidade_display', false);
+
+    $this->actingAs($admin)
+        ->post('http://'.$host.'/admin/escola/catalogo-regional/'.$licenca->id.'/eventos', palestraPayload([
+            'date_time' => '2028-01-01 08:00',
+            'max_seats' => 12,
+        ]))
+        ->assertRedirect();
+
+    $evento = Event::withoutGlobalScopes()->first();
+
+    expect($evento->date_time->format('Y-m-d H:i'))->toBe('2027-09-10 20:00')
+        ->and($evento->max_seats)->toBe(90);
+});
+
+it('ignora data e vagas enviadas pela câmara quando a licença já tem esses dados', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    $licenca = palestraLicense($director, $tenant, overrides: [
+        'palestra_em' => '2027-09-10 20:00:00',
+        'max_inscritos' => 90,
+        'modalidade' => 'online',
+    ]);
+
+    $evento = app(LicenseActivationService::class)->openEvento($licenca, $tenant->id, palestraPayload([
+        'date_time' => '2028-12-31 23:00',
+        'max_seats' => 3,
+    ]));
+
+    expect($evento->date_time->format('Y-m-d H:i'))->toBe('2027-09-10 20:00')
+        ->and($evento->max_seats)->toBe(90);
+});
+
 it('mostra a tela de agendar em vez de abrir turma para palestra', function () {
     $tenant = palestraTenant('araras-sp');
     $director = palestraDirector();
@@ -270,6 +322,58 @@ it('mostra a tela de agendar em vez de abrir turma para palestra', function () {
         ->assertOk()
         ->assertSee('Agendar esta palestra')
         ->assertDontSee('Abrir uma turma');
+});
+
+it('mostra palestra liberada em eventos e no sino da navbar', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    palestraLicense($director, $tenant);
+
+    $admin = palestraAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/eventos')
+        ->assertOk()
+        ->assertSee('LGPD no Legislativo')
+        ->assertSee('palestra liberada para agendar')
+        ->assertSee('Agendar palestra')
+        ->assertSee('Liberados pela direção')
+        ->assertSee('Palestra liberada — agendar evento');
+});
+
+it('mostra curso liberado no sino da navbar', function () {
+    $tenant = palestraTenant('araras-curso');
+    $director = palestraDirector();
+    palestraLicense($director, $tenant, CatalogItemTipo::Curso);
+
+    $admin = palestraAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin')
+        ->assertOk()
+        ->assertSee('LGPD no Legislativo')
+        ->assertSee('Liberados pela direção')
+        ->assertSee('Curso liberado — abrir turma');
+});
+
+it('tira a palestra do sino depois de agendar o evento', function () {
+    $tenant = palestraTenant('araras-sp');
+    $director = palestraDirector();
+    $licenca = palestraLicense($director, $tenant, overrides: ['max_turmas' => 1]);
+
+    app(LicenseActivationService::class)->openEvento($licenca, $tenant->id, palestraPayload());
+
+    $admin = palestraAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/eventos')
+        ->assertOk()
+        ->assertDontSee('palestra liberada para agendar')
+        ->assertDontSee('Palestra liberada — agendar evento')
+        ->assertSee('LGPD no Legislativo — 1ª edição');
 });
 
 it('entrega o material da palestra do catálogo ao aluno e ao admin', function () {

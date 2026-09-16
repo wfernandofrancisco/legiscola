@@ -54,14 +54,19 @@
                                         :text="$promo->ativo && $promo->isWithinSchedule() ? 'Ativo' : ($promo->ativo ? 'Fora do prazo' : 'Inativo')" />
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <div class="flex justify-end gap-2">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <a href="{{ route('diretor.promos.contatos', $promo) }}"
+                                            class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40">
+                                            Contatos{{ $promo->contacts_count ? ' ('.$promo->contacts_count.')' : '' }}
+                                        </a>
                                         <a href="{{ route('diretor.promos.edit', $promo) }}"
-                                            class="text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Editar</a>
+                                            class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40">Editar</a>
                                         <form method="POST" action="{{ route('diretor.promos.destroy', $promo) }}"
+                                            class="inline-flex"
                                             onsubmit="return confirm('Remover este aviso?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-xs font-semibold text-rose-600 hover:underline">Excluir</button>
+                                            <button type="submit" class="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40">Excluir</button>
                                         </form>
                                     </div>
                                 </td>

@@ -4,9 +4,7 @@ namespace App\Services;
 
 use App\Enums\CatalogItemTipo;
 use App\Exceptions\LicenseNotAvailableException;
-use App\Models\CatalogLesson;
 use App\Models\CatalogLicense;
-use App\Models\ClassLesson;
 use App\Models\Course;
 use App\Models\CourseClass;
 use App\Models\Event;
@@ -27,6 +25,8 @@ class LicenseActivationService
     private const HORA_FIM_PADRAO = '21:00';
 
     private const INTERVALO_PADRAO_DIAS = 7;
+
+    public function __construct(private TurmaGradeService $gradeService) {}
 
     /**
      * Cria o curso da câmara para esta licença. Idempotente: chamar de novo devolve o mesmo curso.
@@ -82,7 +82,7 @@ class LicenseActivationService
                 'status' => $data['status'] ?? 'inscricao',
             ]);
 
-            $this->materializeLessons($license, $turma, $tenantId, $data);
+            $this->materializeLessons($license, $turma, $data);
 
             return $turma;
         });
@@ -101,6 +101,7 @@ class LicenseActivationService
         $this->assertDentroDoLimiteDeEventos($license);
 
         $item = $license->catalogItem;
+        $data = $license->overlayDirectorAgenda($data);
 
         return Event::create([
             'tenant_id' => $tenantId,
@@ -108,7 +109,6 @@ class LicenseActivationService
             'catalog_license_id' => $license->id,
             'title' => $data['title'] ?? $item->titulo,
             'description' => $data['description'] ?? ($item->descricao ?: $item->resumo),
-            // Preferência: o que a câmara informou; senão a data combinada na licença.
             'date_time' => $data['date_time'] ?? $license->palestra_em,
             'max_seats' => $data['max_seats'] ?? $license->max_inscritos,
             'allow_online_registration' => (bool) ($data['allow_online_registration'] ?? true),
@@ -127,31 +127,24 @@ class LicenseActivationService
     }
 
     /**
-     * Uma aula da turma para cada aula do catálogo, espaçadas pelo intervalo informado.
+     * Uma aula da turma para cada aula do catálogo.
+     *
+     * Aceita grade por aula (`grade[]`) ou a fórmula antiga (1ª data + intervalo).
      */
-    private function materializeLessons(CatalogLicense $license, CourseClass $turma, int $tenantId, array $data): void
+    private function materializeLessons(CatalogLicense $license, CourseClass $turma, array $data): void
     {
-        $inicio = CarbonImmutable::parse($data['data_inicio']);
-        $intervalo = max(1, (int) ($data['intervalo_dias'] ?? self::INTERVALO_PADRAO_DIAS));
-        $horaInicio = $data['hora_inicio'] ?? self::HORA_INICIO_PADRAO;
-        $horaFim = $data['hora_fim'] ?? self::HORA_FIM_PADRAO;
-        // Turma presencial tem chamada em sala; só a turma online libera a autoconfirmação do aluno.
         $aulaOnline = ($turma->tipo_turma ?? 'online') !== 'presencial';
+        $data['hora_inicio'] = $data['hora_inicio'] ?? self::HORA_INICIO_PADRAO;
+        $data['hora_fim'] = $data['hora_fim'] ?? self::HORA_FIM_PADRAO;
+        $data['intervalo_dias'] = $data['intervalo_dias'] ?? self::INTERVALO_PADRAO_DIAS;
 
-        $license->catalogItem->lessons->values()->each(
-            function (CatalogLesson $aula, int $indice) use ($turma, $tenantId, $inicio, $intervalo, $horaInicio, $horaFim, $aulaOnline): void {
-                ClassLesson::create([
-                    'tenant_id' => $tenantId,
-                    'course_class_id' => $turma->id,
-                    'catalog_lesson_id' => $aula->id,
-                    'title' => $aula->titulo,
-                    'date' => $inicio->addDays($indice * $intervalo)->toDateString(),
-                    'start_time' => $horaInicio,
-                    'end_time' => $horaFim,
-                    'is_online' => $aulaOnline,
-                ]);
-            }
+        $rows = $this->gradeService->rowsFromCatalogFormula(
+            $license->catalogItem->lessons,
+            $data,
+            $aulaOnline
         );
+
+        $this->gradeService->materialize($turma, $rows);
     }
 
     private function courseFor(CatalogLicense $license, int $tenantId): ?Course

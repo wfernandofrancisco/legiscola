@@ -50,6 +50,7 @@ Route::prefix('diretor')
         Route::get('agenda/events', [AgendaController::class, 'events'])->name('agenda.events');
         Route::get('agenda/export.ics', [AgendaController::class, 'exportIcs'])->name('agenda.export');
 
+        Route::get('promos/{promo}/contatos', [PromoController::class, 'contatos'])->name('promos.contatos');
         Route::resource('promos', PromoController::class)
             ->parameters(['promos' => 'promo'])
             ->except(['show']);
