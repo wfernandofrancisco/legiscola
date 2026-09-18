@@ -152,56 +152,61 @@
         @php($headerBrandTitle = ($pfLogo && is_string($pfLogo) && file_exists(public_path($pfLogo)))
             ? ($portalAdminSettings?->nome_camara ?: $portalTenant?->portalChamberBrandLine())
             : ($portalAdminSettings?->nome_camara ?: $portalTenant?->portalBrandTitle()))
-        <nav class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:gap-3.5 sm:px-6 sm:py-4 lg:px-8">
-            {{-- Linha 1: logos + nome da câmara --}}
-            <div class="flex min-w-0 items-center justify-between gap-3">
-                <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
-                    @if(file_exists(public_path($legiscolaLogoPath)))
-                        <a href="{{ route('home') }}" class="portal-header-legiscola-logo flex shrink-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
-                           aria-label="{{ config('app.name') }} — início">
-                            <img src="{{ asset($legiscolaLogoPath) }}" alt="{{ config('app.name') }}" width="120" height="48" fetchpriority="high"
-                                 class="h-8 max-w-[min(140px,34vw)] w-auto object-contain object-left sm:h-9 sm:max-w-[min(180px,30vw)]"/>
+        <nav class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3 lg:px-8">
+            {{-- Linha 1: ícones/logos; texto da escola fica abaixo para não cortar --}}
+            <div class="flex min-w-0 items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                    <div class="flex min-w-0 flex-wrap items-center gap-2.5 sm:gap-3.5">
+                        @if(file_exists(public_path($legiscolaLogoPath)))
+                            <a href="{{ route('home') }}" class="portal-header-legiscola-logo flex shrink-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
+                               aria-label="{{ config('app.name') }} — início">
+                                <img src="{{ asset($legiscolaLogoPath) }}" alt="{{ config('app.name') }}" width="120" height="48" fetchpriority="high"
+                                     class="h-7 max-w-[min(120px,32vw)] w-auto object-contain object-left sm:h-8 sm:max-w-[min(150px,28vw)]"/>
+                            </a>
+                            <span class="portal-header-divider hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-600" aria-hidden="true"></span>
+                        @endif
+                        <a href="{{ route('home') }}"
+                           class="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
+                           aria-label="{{ $headerBrandTitle ?: (($portalTenant?->portalBrandTitle()) ?? __('Início')) }}">
+                            @if(!empty($portalAdminSettings?->logo_prefeitura_path))
+                                <img src="{{ asset('storage/'.$portalAdminSettings->logo_prefeitura_path) }}"
+                                     alt=""
+                                     width="132"
+                                     height="44"
+                                     loading="lazy"
+                                     decoding="async"
+                                     class="h-9 w-auto max-h-9 shrink-0 object-contain sm:h-10 sm:max-h-10"/>
+                            @else
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white shadow-md sm:h-10 sm:w-10 sm:text-sm"
+                                      style="background:linear-gradient(135deg, var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))"
+                                      aria-hidden="true">
+                                    {{ $portalTenant?->portalBrandInitials() ?? 'EL' }}
+                                </span>
+                            @endif
+                            @if(!empty($portalAdminSettings?->logo_escola_path))
+                                <img src="{{ asset('storage/'.$portalAdminSettings->logo_escola_path) }}"
+                                     alt="Escola Legislativa"
+                                     width="132"
+                                     height="44"
+                                     loading="lazy"
+                                     decoding="async"
+                                     class="h-9 w-auto max-h-9 shrink-0 object-contain sm:h-10 sm:max-h-10"/>
+                            @endif
                         </a>
-                        <span class="portal-header-divider hidden min-h-[2.75rem] w-px shrink-0 self-stretch bg-slate-200 sm:block dark:bg-slate-600" aria-hidden="true"></span>
+                    </div>
+
+                    @if(filled($headerBrandTitle))
+                        <a href="{{ route('home') }}"
+                           class="mt-1.5 block min-w-0 max-w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md sm:mt-2"
+                           aria-label="{{ $headerBrandTitle }}">
+                            <span class="portal-header-eyebrow block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 transition-colors duration-300 sm:text-xs dark:text-slate-400">
+                                Escola Legislativa
+                            </span>
+                            <span class="portal-header-title text-pretty block text-sm font-bold leading-snug text-slate-900 transition-colors duration-300 sm:text-base dark:text-white">
+                                {{ $headerBrandTitle }}
+                            </span>
+                        </a>
                     @endif
-                    <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2.5 sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--portal-primary,#3b82f6)] focus-visible:ring-offset-2 rounded-md"
-                       aria-label="{{ $headerBrandTitle ?: (($portalTenant?->portalBrandTitle()) ?? __('Início')) }}">
-                        @if(!empty($portalAdminSettings?->logo_prefeitura_path))
-                            <img src="{{ asset('storage/'.$portalAdminSettings->logo_prefeitura_path) }}"
-                                 alt=""
-                                 width="132"
-                                 height="44"
-                                 loading="lazy"
-                                 decoding="async"
-                                 class="h-11 w-auto max-h-11 shrink-0 object-contain"/>
-                        @else
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md"
-                                  style="background:linear-gradient(135deg, var(--portal-primary,#3b82f6),var(--portal-secondary,#1e40af))"
-                                  aria-hidden="true">
-                                {{ $portalTenant?->portalBrandInitials() ?? 'EL' }}
-                            </span>
-                        @endif
-                        @if(!empty($portalAdminSettings?->logo_escola_path))
-                            <img src="{{ asset('storage/'.$portalAdminSettings->logo_escola_path) }}"
-                                 alt="Escola Legislativa"
-                                 width="132"
-                                 height="44"
-                                 loading="lazy"
-                                 decoding="async"
-                                 class="h-11 w-auto max-h-11 shrink-0 object-contain"/>
-                        @endif
-                        @if(filled($headerBrandTitle))
-                            <span class="portal-header-divider hidden min-h-[2.75rem] w-px shrink-0 self-stretch bg-slate-200 sm:block dark:bg-slate-600" aria-hidden="true"></span>
-                            <span class="min-w-0 text-left leading-tight">
-                                <span class="portal-header-eyebrow block text-xs font-semibold uppercase tracking-wide text-slate-500 transition-colors duration-300 sm:text-sm dark:text-slate-400">
-                                    Escola Legislativa
-                                </span>
-                                <span class="portal-header-title line-clamp-2 text-pretty block text-base font-bold leading-snug text-slate-900 transition-colors duration-300 sm:text-lg dark:text-white">
-                                    {{ $headerBrandTitle }}
-                                </span>
-                            </span>
-                        @endif
-                    </a>
                 </div>
 
                 <button type="button"
