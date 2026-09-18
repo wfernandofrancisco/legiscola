@@ -75,9 +75,9 @@ final class PwaArea
                 'description' => 'Portal da Escola Legislativa no celular.',
                 'theme_color' => '#0f172a',
                 'background_color' => '#0f172a',
-                'install_title' => 'Instale o portal',
-                'install_hint' => 'Abra o portal pelo ícone na tela inicial, como um aplicativo.',
-                'install_hint_ios' => 'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.',
+                'install_title' => 'Leve a Escola Legislativa no celular',
+                'install_hint' => 'Instale o app para abrir turmas, eventos e notícias pela tela inicial.',
+                'install_hint_ios' => 'No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.',
             ],
             default => [
                 'start_url' => '/aluno',

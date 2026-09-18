@@ -439,6 +439,6 @@
 <script>
     window.__portalAnimate = window.__portalAnimate || { revealThreshold: 0.1 };
 </script>
-<x-pwa.install area="portal" />
+<x-pwa.install area="portal" :brand="$portalTenant?->display_name ?? $portalTenant?->nome_fantasia ?? config('app.name')" />
 </body>
 </html>
