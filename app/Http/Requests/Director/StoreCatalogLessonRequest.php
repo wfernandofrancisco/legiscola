@@ -17,8 +17,8 @@ class StoreCatalogLessonRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string', 'max:5000'],
             'video_url' => ['nullable', 'url', 'max:2000'],
-            // 200 MB — arquivos de aula costumam ser grandes; o PHP do Laragon local já aceita.
-            'video_file' => ['nullable', 'file', 'max:204800', 'mimetypes:video/mp4,video/webm,video/quicktime'],
+            // 350 MB — arquivos de aula costumam ser grandes; o PHP do Laragon local já aceita.
+            'video_file' => ['nullable', 'file', 'max:358400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
             'remove_video' => ['nullable', 'boolean'],
             'video_duracao_segundos' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'material_url' => ['nullable', 'url', 'max:2000'],
@@ -44,7 +44,7 @@ class StoreCatalogLessonRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'video_file.max' => 'O vídeo pode ter no máximo 200 MB.',
+            'video_file.max' => 'O vídeo pode ter no máximo 350 MB.',
             'video_file.mimetypes' => 'Envie um vídeo em MP4, WebM ou MOV.',
         ];
     }

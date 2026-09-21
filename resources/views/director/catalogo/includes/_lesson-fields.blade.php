@@ -37,7 +37,7 @@
 
         <input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
             class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-slate-300 dark:file:bg-indigo-950/50 dark:file:text-indigo-300" />
-        <p class="mt-1 text-[11px] text-slate-400">MP4, WebM ou MOV, até 200 MB. Enviar arquivo substitui o vídeo anterior.</p>
+        <p class="mt-1 text-[11px] text-slate-400">MP4, WebM ou MOV, até 350 MB. Enviar arquivo substitui o vídeo anterior.</p>
     </div>
 
     <x-form.input name="video_duracao_segundos" label="Duração do vídeo (segundos)" type="number"

@@ -26,7 +26,7 @@ class StoreClassLessonRequest extends FormRequest
             'video_file' => [
                 'nullable',
                 'file',
-                'max:204800',
+                'max:358400',
                 'mimetypes:video/mp4,video/webm,video/quicktime',
             ],
             'material_url' => ['nullable', 'url'],
@@ -45,7 +45,7 @@ class StoreClassLessonRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'video_file.max' => 'O vídeo pode ter no máximo 200 MB.',
+            'video_file.max' => 'O vídeo pode ter no máximo 350 MB.',
             'video_file.mimetypes' => 'Envie um vídeo MP4, WebM ou MOV.',
         ];
     }

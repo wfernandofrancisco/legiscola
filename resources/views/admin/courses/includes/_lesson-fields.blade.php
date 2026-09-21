@@ -27,7 +27,7 @@
         <input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
             class="mt-2 block w-full text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-300 dark:file:bg-gray-700 dark:file:text-gray-100" />
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Até 200 MB. Comprima com
+            Até 350 MB. Comprima com
             <a href="https://handbrake.fr/" target="_blank" rel="noopener" class="font-medium text-indigo-600 hover:underline">HandBrake</a>
             (Fast 720p30 + Web Optimized).
         </p>

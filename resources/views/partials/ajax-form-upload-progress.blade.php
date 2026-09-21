@@ -22,7 +22,7 @@
     @push('scripts')
         <script>
             (function () {
-                var MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+                var MAX_VIDEO_BYTES = 350 * 1024 * 1024;
                 var uploading = false;
 
                 function formatBytes(n) {
@@ -106,7 +106,7 @@
                         clearFieldErrors(form);
 
                         if (hasVideo && videoInput.files[0].size > MAX_VIDEO_BYTES) {
-                            showError(form, 'O vídeo passa de 200 MB. Comprima com HandBrake (Fast 720p30) ou use o link do YouTube.');
+                            showError(form, 'O vídeo passa de 350 MB. Comprima com HandBrake (Fast 720p30) ou use o link do YouTube.');
                             return;
                         }
 

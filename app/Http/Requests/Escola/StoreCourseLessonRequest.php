@@ -17,7 +17,7 @@ class StoreCourseLessonRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'video_url' => ['nullable', 'url', 'max:2000'],
-            'video_file' => ['nullable', 'file', 'max:204800', 'mimetypes:video/mp4,video/webm,video/quicktime'],
+            'video_file' => ['nullable', 'file', 'max:358400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
             'remove_video' => ['nullable', 'boolean'],
             'material_url' => ['nullable', 'url', 'max:2000'],
             'material_file' => [
@@ -34,7 +34,7 @@ class StoreCourseLessonRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'video_file.max' => 'O vídeo pode ter no máximo 200 MB.',
+            'video_file.max' => 'O vídeo pode ter no máximo 350 MB.',
             'video_file.mimetypes' => 'Envie um vídeo MP4, WebM ou MOV.',
         ];
     }
