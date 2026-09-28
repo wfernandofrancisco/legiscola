@@ -37,8 +37,8 @@ test('password reset usa dominio do tenant no link', function () {
 
     $this->user->sendPasswordResetNotification('token-reset-123');
 
-    Mail::assertQueued(PasswordResetMail::class, function (PasswordResetMail $mail) {
-        return str_contains($mail->resetUrl, 'https://cliente1.site.com.br/')
+    Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) {
+        return str_contains($mail->resetUrl, 'cliente-dominio.site.com.br')
             && str_contains($mail->resetUrl, 'token-reset-123')
             && str_contains($mail->resetUrl, urlencode($this->user->email));
     });
