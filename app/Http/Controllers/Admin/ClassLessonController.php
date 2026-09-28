@@ -8,6 +8,7 @@ use App\Http\Requests\Escola\StoreClassLessonRequest;
 use App\Http\Requests\Escola\UpdateClassLessonRequest;
 use App\Models\ClassLesson;
 use App\Models\CourseClass;
+use App\Models\CourseLesson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,11 +26,27 @@ class ClassLessonController extends Controller
             $request->integer('course_class_id') ?: null
         );
         $courseClasses = CourseClass::query()->orderBy('name')->get();
+        $aulasPorCurso = CourseLesson::query()
+            ->selectRaw('course_id, COUNT(*) as total')
+            ->groupBy('course_id')
+            ->pluck('total', 'course_id');
+        $turmasComAulasPendentes = CourseClass::query()
+            ->with('course:id,name')
+            ->whereIn('course_id', $aulasPorCurso->keys())
+            ->withCount(['lessons as grade_course_lessons_count' => fn ($q) => $q->whereNotNull('course_lesson_id')])
+            ->orderBy('name')
+            ->get()
+            ->each(fn (CourseClass $turma) => $turma->setAttribute(
+                'aulas_pendentes',
+                max(0, (int) ($aulasPorCurso[$turma->course_id] ?? 0) - (int) $turma->grade_course_lessons_count)
+            ))
+            ->filter(fn (CourseClass $turma) => $turma->aulas_pendentes > 0)
+            ->values();
         $breadcrumbs = [
             ['label' => 'Painel', 'href' => route('admin.dashboard')],
             ['label' => 'Aulas'],
         ];
-        return view('admin.class-lessons.index', compact('classLessons', 'courseClasses', 'breadcrumbs'));
+        return view('admin.class-lessons.index', compact('classLessons', 'courseClasses', 'turmasComAulasPendentes', 'breadcrumbs'));
     }
 
     public function create(): View

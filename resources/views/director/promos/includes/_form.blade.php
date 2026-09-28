@@ -145,7 +145,8 @@
                 </div>
 
                 <x-form.date name="inicia_em" label="Válido a partir de"
-                    :value="old('inicia_em', $promo?->inicia_em?->format('Y-m-d'))" />
+                    :value="old('inicia_em', $promo?->inicia_em?->format('Y-m-d') ?? now()->toDateString())"
+                    hint="Deixe a data de hoje (ou vazia) para exibir imediatamente no admin." />
                 <x-form.date name="termina_em" label="Válido até"
                     :value="old('termina_em', $promo?->termina_em?->format('Y-m-d'))"
                     hint="Em branco = sem prazo." />
