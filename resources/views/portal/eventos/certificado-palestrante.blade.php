@@ -5,7 +5,7 @@
 @section('content')
     <x-portal.auth-frame
         title="Certificado do palestrante"
-        subtitle="Baixe o certificado de {{ $event->palestrante_nome }} referente ao evento «{{ $event->title }}»."
+        subtitle="Baixe o certificado de {{ $speakerName ?? $event->palestrante_nome }} referente ao evento «{{ $event->title }}»{{ !empty($palestra) ? ' · '.$palestra->title : '' }}."
     >
         @if (session('error'))
             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">{{ session('error') }}</div>
@@ -19,7 +19,7 @@
                 A organização ainda não cadastrou um template ativo do tipo «Palestrante».
             </div>
         @else
-            <form method="POST" action="{{ route('portal.eventos.certificado-palestrante.store', $event) }}" class="space-y-5">
+            <form method="POST" action="{{ $formAction ?? route('portal.eventos.certificado-palestrante.store', $event) }}" class="space-y-5">
                 @csrf
                 <div>
                     <label class="block text-sm font-semibold text-slate-800 dark:text-slate-100" for="cpf">CPF</label>

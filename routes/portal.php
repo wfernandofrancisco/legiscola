@@ -41,6 +41,14 @@ Route::middleware([SetTenantContext::class, 'tenant.portal'])
         Route::post('/eventos/{evento}/certificado-palestrante', [PortalEventoPalestranteCertificadoController::class, 'store'])
             ->name('eventos.certificado-palestrante.store')
             ->whereNumber('evento');
+        Route::get('/eventos/{evento}/palestras/{palestra}/certificado-palestrante', [PortalEventoPalestranteCertificadoController::class, 'createPalestra'])
+            ->name('eventos.palestra.certificado-palestrante')
+            ->whereNumber('evento')
+            ->whereNumber('palestra');
+        Route::post('/eventos/{evento}/palestras/{palestra}/certificado-palestrante', [PortalEventoPalestranteCertificadoController::class, 'storePalestra'])
+            ->name('eventos.palestra.certificado-palestrante.store')
+            ->whereNumber('evento')
+            ->whereNumber('palestra');
         Route::post('/eventos/{evento}/inscrever', [PortalEventoController::class, 'enroll'])
             ->middleware(['auth', 'verified', 'accepted-privacy-term', 'role:tenant_user'])
             ->name('eventos.inscrever')

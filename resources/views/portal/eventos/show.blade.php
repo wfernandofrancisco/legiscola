@@ -21,7 +21,7 @@
             $evento->state ? $evento->state.', '.$evento->zipcode : $evento->zipcode,
         ])->filter()->join(' — '));
         $heroSubtitle = collect([
-            $evento->date_time?->format('d/m/Y — H:i'),
+            $evento->dateRangeLabel(),
             $evento->city ? trim($evento->city.($evento->state ? ' · '.$evento->state : '')) : null,
         ])->filter()->join(' · ');
     @endphp
@@ -51,7 +51,22 @@
 
         <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
             <p class="text-xs font-semibold uppercase tracking-[0.2em]" style="color:var(--portal-primary)">Evento</p>
-            <time class="mt-2 block text-sm text-slate-500 dark:text-slate-400">{{ $evento->date_time?->format('d/m/Y — H:i') }}</time>
+            <time class="mt-2 block text-sm text-slate-500 dark:text-slate-400">{{ $evento->dateRangeLabel() }}</time>
+
+            @if ($evento->hasPalestras())
+                <div class="mt-6 space-y-3">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Palestras deste evento</p>
+                    @foreach ($evento->palestras as $palestra)
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/50">
+                            <p class="font-semibold text-slate-900 dark:text-white">{{ $palestra->title }}</p>
+                            <p class="mt-1 text-slate-500 dark:text-slate-400">{{ $palestra->date_time?->format('d/m/Y — H:i') }}</p>
+                            @if (filled($palestra->palestrante_nome))
+                                <p class="mt-1 text-slate-600 dark:text-slate-300">{{ $palestra->palestrante_nome }}</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if($addr !== '')
                 <div class="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm dark:border-slate-800 dark:bg-slate-900/50">
@@ -94,8 +109,20 @@
                     @if($jaInscritoNoEvento)
                         <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Você já está inscrito neste evento.</p>
                     @elseif($podeInscricaoPortal)
-                        <form method="post" action="{{ route('portal.eventos.inscrever', $evento) }}" class="mt-4">
+                        <form method="post" action="{{ route('portal.eventos.inscrever', $evento) }}" class="mt-4 space-y-3">
                             @csrf
+                            @if ($evento->hasPalestras())
+                                <p class="text-sm text-slate-600 dark:text-slate-300">Escolha uma, algumas ou todas as palestras:</p>
+                                @foreach ($evento->palestras as $palestra)
+                                    <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+                                        <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-1 rounded border-slate-300 text-indigo-600" checked>
+                                        <span>
+                                            <span class="font-semibold text-slate-900 dark:text-white">{{ $palestra->title }}</span>
+                                            <span class="mt-0.5 block text-xs text-slate-500">{{ $palestra->date_time?->format('d/m/Y H:i') }}@if(filled($palestra->palestrante_nome)) · {{ $palestra->palestrante_nome }}@endif</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            @endif
                             <button type="submit"
                                 class="inline-flex rounded-full px-7 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-95"
                                 style="background:linear-gradient(135deg,var(--portal-primary),var(--portal-secondary))">

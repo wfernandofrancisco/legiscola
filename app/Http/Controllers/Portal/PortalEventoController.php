@@ -72,7 +72,8 @@ class PortalEventoController extends Controller
         }
 
         try {
-            $enrollmentService->inscreverEmEvento((int) $student->id, $evento);
+            $palestraIds = collect(request()->input('palestra_ids', []))->map(fn ($id) => (int) $id)->all();
+            $enrollmentService->inscreverEmEvento((int) $student->id, $evento, $palestraIds);
         } catch (ValidationException $e) {
             return redirect()
                 ->route('portal.eventos.show', $evento)

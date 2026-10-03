@@ -23,7 +23,7 @@ class EventoController extends Controller
 
         $enrollments = EventEnrollment::query()
             ->where('student_id', $student->id)
-            ->with('event')
+            ->with(['event.palestras', 'palestraSelections'])
             ->latest('id')
             ->get()
             ->filter(fn (EventEnrollment $e) => $e->event !== null)
@@ -37,7 +37,8 @@ class EventoController extends Controller
         $student = $this->requireStudent();
         $enrollment = $this->requireEnrollment($student, $evento);
 
-        $evento->load(['catalogItem.lessons', 'catalogLicense']);
+        $evento->load(['catalogItem.lessons', 'catalogLicense', 'palestras']);
+        $enrollment->load('palestraSelections.palestra');
 
         $windowOpen = $evento->isPresenceWindowOpen();
         $canCheckIn = $evento->isGeofenceCheckInEnabled() && $windowOpen && ! $enrollment->presente;

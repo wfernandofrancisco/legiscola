@@ -50,6 +50,9 @@
                         <th class="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">E-mail</th>
                         <th class="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Matrícula</th>
                         <th class="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Inscrito em</th>
+                        @if ($event->hasPalestras())
+                            <th class="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Palestras</th>
+                        @endif
                         <th class="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Presença</th>
                         <th class="px-4 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Certificado</th>
                     </tr>
@@ -68,21 +71,55 @@
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ $u?->email ?? $stu?->email ?? '—' }}</td>
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ $stu?->enrollment_number ?? '—' }}</td>
                             <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ $row->created_at?->format('d/m/Y H:i') }}</td>
+                            @if ($event->hasPalestras())
+                                <td class="px-4 py-2 text-xs text-gray-600 dark:text-gray-300">
+                                    <ul class="space-y-1">
+                                        @forelse ($row->palestraSelections as $sel)
+                                            <li>{{ $sel->palestra?->title ?? 'Palestra' }} · {{ $sel->palestra?->date_time?->format('d/m H:i') }}</li>
+                                        @empty
+                                            <li>Nenhuma palestra escolhida</li>
+                                        @endforelse
+                                    </ul>
+                                </td>
+                            @endif
                             <td class="px-4 py-2">
-                                <form method="POST" action="{{ route('admin.eventos.inscricao.update', ['evento' => $event, 'event_enrollment' => $row]) }}"
-                                    class="flex flex-wrap items-center gap-2">
-                                    @csrf
-                                    @method('PATCH')
-                                    <select name="presente"
-                                        class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
-                                        <option value="1" @selected($row->presente)>Presente</option>
-                                        <option value="0" @selected(! $row->presente)>Ausente</option>
-                                    </select>
-                                    <button type="submit"
-                                        class="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700">
-                                        Salvar
-                                    </button>
-                                </form>
+                                @if ($event->hasPalestras() && $row->palestraSelections->isNotEmpty())
+                                    <div class="space-y-2">
+                                        @foreach ($row->palestraSelections as $sel)
+                                            <form method="POST" action="{{ route('admin.eventos.inscricao.update', ['evento' => $event, 'event_enrollment' => $row]) }}"
+                                                class="flex flex-wrap items-center gap-2">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="event_palestra_id" value="{{ $sel->event_palestra_id }}">
+                                                <span class="min-w-[8rem] text-[11px] text-gray-600 dark:text-gray-300">{{ $sel->palestra?->title }}</span>
+                                                <select name="presente"
+                                                    class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
+                                                    <option value="1" @selected($sel->presente)>Presente</option>
+                                                    <option value="0" @selected(! $sel->presente)>Ausente</option>
+                                                </select>
+                                                <button type="submit"
+                                                    class="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700">
+                                                    Salvar
+                                                </button>
+                                            </form>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <form method="POST" action="{{ route('admin.eventos.inscricao.update', ['evento' => $event, 'event_enrollment' => $row]) }}"
+                                        class="flex flex-wrap items-center gap-2">
+                                        @csrf
+                                        @method('PATCH')
+                                        <select name="presente"
+                                            class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
+                                            <option value="1" @selected($row->presente)>Presente</option>
+                                            <option value="0" @selected(! $row->presente)>Ausente</option>
+                                        </select>
+                                        <button type="submit"
+                                            class="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700">
+                                            Salvar
+                                        </button>
+                                    </form>
+                                @endif
                                 @if ($row->checkin_em)
                                     <p class="mt-1 text-[10px] text-emerald-700 dark:text-emerald-400">
                                         GPS {{ $row->checkin_em->format('d/m H:i') }}
@@ -90,7 +127,30 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2 text-right">
-                                @if ($isPresente && $latestHash)
+                                @if ($event->hasPalestras())
+                                    <div class="space-y-2">
+                                        @foreach ($row->palestraSelections as $sel)
+                                            @php
+                                                $palestraPresente = (bool) $sel->presente;
+                                                $palestraHash = $latestCertificateHashByStudent[$sid.'-'.$sel->event_palestra_id] ?? null;
+                                                $palestraEmite = $sel->palestra?->com_certificado || $event->com_certificado;
+                                            @endphp
+                                            @if ($palestraPresente && $palestraHash)
+                                                <a href="{{ route('certificados.download', $palestraHash) }}" target="_blank" rel="noopener noreferrer"
+                                                    class="inline-flex rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+                                                    Cert. {{ $sel->palestra?->title }}
+                                                </a>
+                                            @elseif ($palestraPresente && $palestraEmite && $activeEventCertificateTemplate && ! $palestraHash)
+                                                <button type="submit" form="issue-event-cert-{{ $row->id }}-{{ $sel->event_palestra_id }}" formtarget="_blank"
+                                                    class="inline-flex rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">
+                                                    Emitir {{ $sel->palestra?->title }}
+                                                </button>
+                                            @elseif (! $palestraPresente)
+                                                <span class="block text-[11px] text-gray-500">{{ $sel->palestra?->title }}: marque presença</span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @elseif ($isPresente && $latestHash)
                                     <a href="{{ route('certificados.download', $latestHash) }}" target="_blank" rel="noopener noreferrer"
                                         class="inline-flex rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
                                         Imprimir certificado
@@ -121,7 +181,31 @@
                     $latestHash = $sid > 0 ? ($latestCertificateHashByStudent[$sid] ?? null) : null;
                     $isPresente = in_array($row->presente, [true, 1, '1', 'true', 'on'], true);
                 @endphp
-                @if ($isPresente && ! $latestHash)
+                @if ($event->hasPalestras())
+                    @foreach ($row->palestraSelections as $sel)
+                        @php $palestraHash = $latestCertificateHashByStudent[$sid.'-'.$sel->event_palestra_id] ?? null; @endphp
+                        @if ($sel->presente && ! $palestraHash && ($sel->palestra?->com_certificado || $event->com_certificado))
+                            <form method="POST" action="{{ route('admin.escola.certificados.issue') }}"
+                                id="issue-event-cert-{{ $row->id }}-{{ $sel->event_palestra_id }}" class="hidden">
+                                @csrf
+                                <input type="hidden" name="student_id" value="{{ $stu?->id }}">
+                                <input type="hidden" name="event_id" value="{{ $event->id }}">
+                                <input type="hidden" name="event_palestra_id" value="{{ $sel->event_palestra_id }}">
+                                <input type="hidden" name="certificate_template_id" value="{{ $activeEventCertificateTemplate->id }}">
+                                <input type="hidden" name="snapshot[student_name]" value="{{ $u?->name ?? $stu?->email ?? 'Aluno' }}">
+                                <input type="hidden" name="snapshot[course_name]" value="{{ $sel->palestra?->title ?: $event->title }}">
+                                <input type="hidden" name="snapshot[evento_nome]" value="{{ $event->title }}">
+                                <input type="hidden" name="snapshot[palestra_nome]" value="{{ $sel->palestra?->title }}">
+                                <input type="hidden" name="snapshot[palestrante_nome]" value="{{ $sel->palestra?->palestrante_nome ?: $event->palestrante_nome }}">
+                                <input type="hidden" name="snapshot[professor_nome]" value="{{ $sel->palestra?->palestrante_nome ?: $event->palestrante_nome }}">
+                                <input type="hidden" name="snapshot[event_id]" value="{{ $event->id }}">
+                                <input type="hidden" name="snapshot[event_palestra_id]" value="{{ $sel->event_palestra_id }}">
+                                <input type="hidden" name="snapshot[workload_hours]" value="0">
+                                <input type="hidden" name="redirect_to_download" value="1">
+                            </form>
+                        @endif
+                    @endforeach
+                @elseif ($isPresente && ! $latestHash)
                     <form method="POST" action="{{ route('admin.escola.certificados.issue') }}"
                         id="issue-event-cert-{{ $row->id }}" class="hidden">
                         @csrf
@@ -184,6 +268,20 @@
                 <x-form.input id="participant_password_confirmation" name="password_confirmation" label="Confirmar senha" type="password" autocomplete="new-password" />
             </div>
 
+            @if ($event->hasPalestras())
+                <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 dark:border-indigo-900 dark:bg-indigo-950/30">
+                    <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras desta inscrição</p>
+                    <div class="mt-2 space-y-2">
+                        @foreach ($event->palestras as $palestra)
+                            <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-gray-300 text-indigo-600"
+                                    @checked(in_array($palestra->id, old('palestra_ids', $event->palestras->pluck('id')->all()), false) || in_array((string) $palestra->id, old('palestra_ids', []), true))>
+                                <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m/Y H:i') }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-200">
                 <input type="checkbox" name="presente" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" @checked(old('presente'))>
                 <span>

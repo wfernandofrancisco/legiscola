@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\Repositories\EventRepositoryInterface;
 use App\Contracts\Services\EventCrudServiceInterface;
 use App\Models\Event;
+use App\Models\EventPalestra;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
@@ -20,12 +21,36 @@ class EventCrudService implements EventCrudServiceInterface
 
     public function create(array $data): Event
     {
-        return $this->eventRepository->create($this->normalize($data, true, null));
+        $palestras = $data['palestras'] ?? [];
+        unset($data['palestras']);
+        if (! filled($data['date_time'] ?? null) && is_array($palestras)) {
+            $first = collect($palestras)->first(fn ($row) => filled($row['date_time'] ?? null));
+            if ($first) {
+                $data['date_time'] = $first['date_time'];
+            }
+        }
+
+        $event = $this->eventRepository->create($this->normalize($data, true, null));
+        $this->syncPalestras($event, is_array($palestras) ? $palestras : []);
+
+        return $event->fresh(['palestras']);
     }
 
     public function update(Event $event, array $data): bool
     {
-        return $this->eventRepository->update($event, $this->normalize($data, false, $event));
+        $palestras = $data['palestras'] ?? [];
+        unset($data['palestras']);
+        if (! filled($data['date_time'] ?? null) && is_array($palestras)) {
+            $first = collect($palestras)->first(fn ($row) => filled($row['date_time'] ?? null));
+            if ($first) {
+                $data['date_time'] = $first['date_time'];
+            } else {
+                unset($data['date_time']);
+            }
+        }
+        $this->syncPalestras($event, is_array($palestras) ? $palestras : []);
+
+        return $ok;
     }
 
     public function delete(Event $event): bool
@@ -83,5 +108,72 @@ class EventCrudService implements EventCrudServiceInterface
         }
 
         return $data;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function syncPalestras(Event $event, array $rows): void
+    {
+        $keepIds = [];
+        $firstDate = null;
+
+        foreach (array_values($rows) as $index => $row) {
+            $title = trim((string) ($row['title'] ?? ''));
+            $dateTime = $row['date_time'] ?? null;
+            if ($title === '' || ! filled($dateTime)) {
+                continue;
+            }
+
+            $existing = null;
+            if (! empty($row['id'])) {
+                $existing = EventPalestra::query()
+                    ->where('event_id', $event->id)
+                    ->whereKey((int) $row['id'])
+                    ->first();
+            }
+
+            $payload = [
+                'tenant_id' => $event->tenant_id,
+                'event_id' => $event->id,
+                'ordem' => (int) ($row['ordem'] ?? $index + 1),
+                'title' => $title,
+                'date_time' => $dateTime,
+                'com_certificado' => (bool) ($row['com_certificado'] ?? false),
+                'palestrante_nome' => filled($row['palestrante_nome'] ?? null) ? trim((string) $row['palestrante_nome']) : null,
+                'palestrante_cpf' => $row['palestrante_cpf'] ?? null,
+            ];
+
+            if (! $payload['palestrante_nome']) {
+                $payload['palestrante_cpf'] = null;
+                $payload['palestrante_senha'] = null;
+            } elseif (filled($row['palestrante_senha'] ?? null)) {
+                $payload['palestrante_senha'] = Hash::make((string) $row['palestrante_senha']);
+            } elseif ($existing && filled($existing->palestrante_senha)) {
+                unset($payload['palestrante_senha']);
+            } else {
+                $payload['palestrante_senha'] = null;
+            }
+
+            $palestra = $existing
+                ? tap($existing, fn (EventPalestra $model) => $model->fill($payload)->save())
+                : EventPalestra::query()->create($payload);
+
+            $keepIds[] = $palestra->id;
+
+            $at = $palestra->date_time;
+            if ($at && ($firstDate === null || $at->lt($firstDate))) {
+                $firstDate = $at;
+            }
+        }
+
+        EventPalestra::query()
+            ->where('event_id', $event->id)
+            ->when($keepIds !== [], fn ($q) => $q->whereNotIn('id', $keepIds), fn ($q) => $q)
+            ->delete();
+
+        if ($firstDate) {
+            $event->forceFill(['date_time' => $firstDate])->save();
+        }
     }
 }

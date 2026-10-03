@@ -8,7 +8,9 @@ use App\Contracts\Repositories\EventRepositoryInterface;
 use App\Contracts\Services\EnrollmentServiceInterface;
 use App\Models\CourseClassSchedule;
 use App\Models\Enrollment;
+use App\Models\Event;
 use App\Models\EventEnrollment;
+use App\Models\EventEnrollmentPalestra;
 use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -100,7 +102,7 @@ class EnrollmentService implements EnrollmentServiceInterface
         ]);
     }
 
-    public function inscreverEmEvento(int $studentId, int $eventId): void
+    public function inscreverEmEvento(int $studentId, int $eventId, array $palestraIds = []): void
     {
         $event = $this->eventRepository->findById($eventId);
         if (! $event) {
@@ -124,15 +126,19 @@ class EnrollmentService implements EnrollmentServiceInterface
             throw ValidationException::withMessages(['event_id' => 'Evento sem vagas disponíveis.']);
         }
 
-        EventEnrollment::query()->create([
-            'tenant_id' => TenantContext::getTenantId(),
+        $palestraIds = $this->resolvePalestraIds($event, $palestraIds);
+
+        $enrollment = EventEnrollment::query()->create([
+            'tenant_id' => TenantContext::getTenantId() ?? $event->tenant_id,
             'event_id' => $eventId,
             'student_id' => $studentId,
             'presente' => false,
         ]);
+
+        $this->attachPalestras($enrollment, $event, $palestraIds, false);
     }
 
-    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false): EventEnrollment
+    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false, array $palestraIds = []): EventEnrollment
     {
         $event = $this->eventRepository->findById($eventId);
         if (! $event) {
@@ -152,12 +158,61 @@ class EnrollmentService implements EnrollmentServiceInterface
             ]);
         }
 
-        return EventEnrollment::query()->create([
+        $palestraIds = $this->resolvePalestraIds($event, $palestraIds, true);
+
+        $enrollment = EventEnrollment::query()->create([
             'tenant_id' => TenantContext::getTenantId() ?? $event->tenant_id,
             'event_id' => $eventId,
             'student_id' => $studentId,
             'presente' => $presente,
         ]);
+
+        $this->attachPalestras($enrollment, $event, $palestraIds, $presente);
+
+        return $enrollment;
+    }
+
+    /**
+     * @param  list<int|string>  $requested
+     * @return list<int>
+     */
+    private function resolvePalestraIds(Event $event, array $requested, bool $admin = false): array
+    {
+        $event->loadMissing('palestras');
+        if ($event->palestras->isEmpty()) {
+            return [];
+        }
+
+        $allowed = $event->palestras->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $ids = collect($requested)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => in_array($id, $allowed, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            throw ValidationException::withMessages([
+                $admin ? 'palestra_ids' : 'palestra_ids' => 'Escolha ao menos uma palestra deste evento.',
+            ]);
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  list<int>  $palestraIds
+     */
+    private function attachPalestras(EventEnrollment $enrollment, Event $event, array $palestraIds, bool $presente): void
+    {
+        foreach ($palestraIds as $palestraId) {
+            EventEnrollmentPalestra::query()->create([
+                'tenant_id' => $enrollment->tenant_id,
+                'event_enrollment_id' => $enrollment->id,
+                'event_palestra_id' => $palestraId,
+                'presente' => $presente,
+            ]);
+        }
     }
 
     public function paginateByCourseClass(int $courseClassId, int $perPage = 15, ?string $search = null, ?string $status = null): LengthAwarePaginator

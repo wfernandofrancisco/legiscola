@@ -198,6 +198,62 @@ class Event extends Model
         return $distance !== null && $distance <= (float) $this->geofence_raio_metros;
     }
 
+    public function palestras(): HasMany
+    {
+        return $this->hasMany(EventPalestra::class)->orderBy('ordem')->orderBy('date_time');
+    }
+
+    public function hasPalestras(): bool
+    {
+        if ($this->relationLoaded('palestras')) {
+            return $this->palestras->isNotEmpty();
+        }
+
+        return $this->palestras()->exists();
+    }
+
+    public function firstSessionAt(): ?\Carbon\CarbonInterface
+    {
+        $this->loadMissing('palestras');
+
+        if ($this->palestras->isNotEmpty()) {
+            return $this->palestras->min('date_time');
+        }
+
+        return $this->date_time;
+    }
+
+    public function lastSessionAt(): ?\Carbon\CarbonInterface
+    {
+        $this->loadMissing('palestras');
+
+        if ($this->palestras->isNotEmpty()) {
+            return $this->palestras->max('date_time');
+        }
+
+        return $this->date_time;
+    }
+
+    public function dateRangeLabel(): string
+    {
+        $first = $this->firstSessionAt();
+        $last = $this->lastSessionAt();
+
+        if (! $first) {
+            return 'Data a definir';
+        }
+
+        if (! $last || $first->equalTo($last)) {
+            return $first->format('d/m/Y — H:i');
+        }
+
+        if ($first->isSameDay($last)) {
+            return $first->format('d/m/Y').' · '.$first->format('H:i').'–'.$last->format('H:i');
+        }
+
+        return $first->format('d/m/Y H:i').' a '.$last->format('d/m/Y H:i');
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(EventEnrollment::class);
@@ -219,7 +275,8 @@ class Event extends Model
 
         $at = $at ? CarbonImmutable::instance($at) : CarbonImmutable::now();
 
-        if ($this->date_time->lt($at)) {
+        $fim = $this->lastSessionAt() ?? $this->date_time;
+        if ($fim && $fim->lt($at)) {
             return false;
         }
 

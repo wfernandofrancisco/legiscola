@@ -33,6 +33,9 @@ class PortalInscricaoAluno extends Component
         session()->flash('success', 'Matrícula registrada com sucesso.');
     }
 
+    /** @var array<int, list<int>> */
+    public array $palestraIds = [];
+
     public function inscreverEmEvento(int $eventId, EnrollmentServiceInterface $service): void
     {
         if (! $this->studentId) {
@@ -41,7 +44,7 @@ class PortalInscricaoAluno extends Component
         }
 
         try {
-            $service->inscreverEmEvento($this->studentId, $eventId);
+            $service->inscreverEmEvento($this->studentId, $eventId, $this->palestraIds[$eventId] ?? []);
         } catch (ValidationException $e) {
             session()->flash('error', collect($e->errors())->flatten()->first());
 

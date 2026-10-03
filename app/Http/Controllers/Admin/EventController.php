@@ -64,8 +64,10 @@ class EventController extends Controller
     public function edit(Event $evento): View
     {
         $event = $evento->load([
+            'palestras',
             'enrollments' => fn ($q) => $q->latest('id'),
             'enrollments.student.user',
+            'enrollments.palestraSelections.palestra',
             'catalogItem.lessons',
             'catalogLicense',
         ]);
@@ -83,10 +85,19 @@ class EventController extends Controller
                 ->whereNotNull('validation_hash')
                 ->orderByDesc('issued_at')
                 ->orderByDesc('id')
-                ->get(['student_id', 'validation_hash'])
-                ->unique('student_id')
-                ->mapWithKeys(fn (Certificate $c): array => [(int) $c->student_id => $c->validation_hash])
-                ->all();
+                ->get(['student_id', 'validation_hash', 'snapshot'])
+                ->reduce(function (array $carry, Certificate $c): array {
+                    $studentId = (int) $c->student_id;
+                    $palestraId = (int) data_get($c->snapshot, 'event_palestra_id', 0);
+                    if ($palestraId > 0 && ! isset($carry[$studentId.'-'.$palestraId])) {
+                        $carry[$studentId.'-'.$palestraId] = $c->validation_hash;
+                    }
+                    if (! isset($carry[$studentId])) {
+                        $carry[$studentId] = $c->validation_hash;
+                    }
+
+                    return $carry;
+                }, []);
         }
 
         $activeEventCertificateTemplate = CertificateTemplate::latestActiveForEmission(CertificateTipoEmissao::Evento);
@@ -111,11 +122,26 @@ class EventController extends Controller
 
         $request->validate([
             'presente' => ['required', 'boolean'],
+            'event_palestra_id' => ['nullable', 'integer'],
         ]);
 
-        $event_enrollment->update([
-            'presente' => $request->boolean('presente'),
-        ]);
+        $presente = $request->boolean('presente');
+        $palestraId = $request->integer('event_palestra_id') ?: null;
+
+        if ($palestraId) {
+            $selection = $event_enrollment->palestraSelections()
+                ->where('event_palestra_id', $palestraId)
+                ->first();
+            abort_unless($selection, 404);
+            $selection->update(['presente' => $presente]);
+
+            $event_enrollment->update([
+                'presente' => $event_enrollment->palestraSelections()->where('presente', true)->exists(),
+            ]);
+        } else {
+            $event_enrollment->update(['presente' => $presente]);
+            $event_enrollment->palestraSelections()->update(['presente' => $presente]);
+        }
 
         return back()->with('success', 'Presença atualizada.');
     }
@@ -123,6 +149,9 @@ class EventController extends Controller
     public function markAllEnrollmentsPresente(Event $evento): RedirectResponse
     {
         $evento->enrollments()->update(['presente' => true]);
+        \App\Models\EventEnrollmentPalestra::query()
+            ->whereIn('event_enrollment_id', $evento->enrollments()->pluck('id'))
+            ->update(['presente' => true]);
 
         return back()->with('success', 'Todos os inscritos foram marcados como presentes.');
     }
@@ -138,7 +167,8 @@ class EventController extends Controller
             $enrollmentService->inscreverEmEventoAdmin(
                 (int) $student->id,
                 (int) $evento->id,
-                $request->boolean('presente')
+                $request->boolean('presente'),
+                $request->input('palestra_ids', [])
             );
         } catch (ValidationException $exception) {
             return back()

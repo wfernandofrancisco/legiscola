@@ -40,7 +40,17 @@
                     <article wire:key="evento-{{ $event->id }}" class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 shadow-lg shadow-black/20">
                         <p class="text-xs font-semibold uppercase tracking-wide text-emerald-400/90">{{ $event->city }} — {{ $event->state }}</p>
                         <h4 class="mt-2 text-lg font-bold text-white">{{ $event->title }}</h4>
-                        <p class="mt-1 text-sm text-slate-400">{{ $event->date_time?->format('d/m/Y H:i') }}</p>
+                        <p class="mt-1 text-sm text-slate-400">{{ $event->dateRangeLabel() }}</p>
+                        @if (! $jaInscrito && $event->hasPalestras())
+                            <div class="mt-3 space-y-1.5">
+                                @foreach ($event->palestras as $palestra)
+                                    <label class="flex items-start gap-2 text-xs text-slate-300">
+                                        <input type="checkbox" wire:model="palestraIds.{{ $event->id }}" value="{{ $palestra->id }}" class="mt-0.5 rounded border-slate-600 bg-slate-800 text-emerald-500">
+                                        <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m H:i') }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
                         <button type="button" wire:click="inscreverEmEvento({{ $event->id }})" @disabled($jaInscrito)
                             class="mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition {{ $jaInscrito ? 'cursor-not-allowed border border-slate-700 bg-slate-800/50 text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:brightness-110' }}">
                             {{ $jaInscrito ? 'Já inscrito' : 'Inscrever no evento' }}

@@ -29,7 +29,12 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $event->date_time?->format('d/m/Y H:i') }}</td>
+                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">
+                        {{ $event->dateRangeLabel() }}
+                        @if (($event->palestras_count ?? $event->palestras?->count()) > 0)
+                            <span class="mt-1 block text-[11px] text-indigo-600 dark:text-indigo-300">{{ $event->palestras_count ?? $event->palestras->count() }} palestras</span>
+                        @endif
+                    </td>
                     <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $event->city ?: '—' }}</td>
                     <td class="px-6 py-4 text-center tabular-nums text-gray-700 dark:text-gray-300">
                         {{ $event->enrollments_count }}

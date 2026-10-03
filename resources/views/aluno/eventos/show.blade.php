@@ -16,7 +16,23 @@
                         {{ collect([$event->address, $event->number, $event->district, $event->city, $event->state])->filter()->implode(', ') }}
                     </p>
                 @endif
-                @if (filled($event->palestrante_nome))
+                @if ($event->hasPalestras())
+                    <div class="mt-4 space-y-2">
+                        @foreach ($event->palestras as $palestra)
+                            @php $escolhida = $enrollment->escolheuPalestra((int) $palestra->id); @endphp
+                            <p class="text-sm {{ $escolhida ? 'text-slate-300' : 'text-slate-500' }}">
+                                <span class="font-semibold">{{ $palestra->title }}</span>
+                                · {{ $palestra->date_time?->format('d/m/Y H:i') }}
+                                @if (filled($palestra->palestrante_nome))
+                                    · {{ $palestra->palestrante_nome }}
+                                @endif
+                                @if ($escolhida)
+                                    · {{ $enrollment->isPresenteNaPalestra((int) $palestra->id) ? 'Presente' : 'Inscrito' }}
+                                @endif
+                            </p>
+                        @endforeach
+                    </div>
+                @elseif (filled($event->palestrante_nome))
                     <p class="mt-2 text-sm text-slate-400">
                         <span class="font-semibold text-slate-300">Palestrante:</span> {{ $event->palestrante_nome }}
                     </p>

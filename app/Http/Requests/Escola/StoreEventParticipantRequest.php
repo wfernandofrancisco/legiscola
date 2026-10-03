@@ -24,6 +24,7 @@ class StoreEventParticipantRequest extends FormRequest
             'cpf' => $digits($this->input('cpf')),
             'cidade' => trim((string) $this->input('cidade', '')),
             'presente' => $this->boolean('presente'),
+            'palestra_ids' => collect($this->input('palestra_ids', []))->map(fn ($id) => (int) $id)->filter()->unique()->values()->all(),
         ]);
     }
 
@@ -41,6 +42,8 @@ class StoreEventParticipantRequest extends FormRequest
             'cidade' => ['required', 'string', 'max:255'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'presente' => ['sometimes', 'boolean'],
+            'palestra_ids' => ['nullable', 'array'],
+            'palestra_ids.*' => ['integer'],
         ];
     }
 

@@ -11,9 +11,9 @@ interface EnrollmentServiceInterface
     public function matricularEmTurma(int $studentId, int $courseClassId): Enrollment;
     public function matricularEmTurmaAdmin(int $studentId, int $courseClassId, string $status = 'inscrito', ?string $observations = null): Enrollment;
 
-    public function inscreverEmEvento(int $studentId, int $eventId): void;
+    public function inscreverEmEvento(int $studentId, int $eventId, array $palestraIds = []): void;
 
-    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false): EventEnrollment;
+    public function inscreverEmEventoAdmin(int $studentId, int $eventId, bool $presente = false, array $palestraIds = []): EventEnrollment;
 
     public function paginateByCourseClass(int $courseClassId, int $perPage = 15, ?string $search = null, ?string $status = null): LengthAwarePaginator;
 

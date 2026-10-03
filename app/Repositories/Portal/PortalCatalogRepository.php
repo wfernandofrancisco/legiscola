@@ -77,6 +77,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
     {
         return Event::query()
             ->visibleOnPortal()
+            ->with('palestras')
             ->latest('date_time')
             ->paginate($perPage)
             ->withQueryString();
@@ -84,7 +85,7 @@ class PortalCatalogRepository implements PortalCatalogRepositoryInterface
 
     public function findEvent(int $id): ?Event
     {
-        return Event::query()->visibleOnPortal()->find($id);
+        return Event::query()->visibleOnPortal()->with('palestras')->find($id);
     }
 
     public function paginateActiveCredenciamentos(int $perPage, ?string $pageName = null): LengthAwarePaginator

@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\CertificateTemplate;
 use App\Models\Event;
+use App\Models\EventPalestra;
 use App\Rules\CpfRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,25 @@ class PortalEventoPalestranteCertificadoController extends Controller
 
         return view('portal.eventos.certificado-palestrante', [
             'event' => $evento,
+            'palestra' => null,
+            'speakerName' => $evento->palestrante_nome,
+            'formAction' => route('portal.eventos.certificado-palestrante.store', $evento),
+            'hasTemplate' => CertificateTemplate::latestActiveForEmission(CertificateTipoEmissao::Palestrante) !== null,
+        ]);
+    }
+
+    public function createPalestra(Event $evento, EventPalestra $palestra): View|RedirectResponse
+    {
+        abort_unless((int) $palestra->event_id === (int) $evento->id, 404);
+        if (! $palestra->hasSpeakerCertificateSetup()) {
+            abort(404);
+        }
+
+        return view('portal.eventos.certificado-palestrante', [
+            'event' => $evento,
+            'palestra' => $palestra,
+            'speakerName' => $palestra->palestrante_nome,
+            'formAction' => route('portal.eventos.palestra.certificado-palestrante.store', [$evento, $palestra]),
             'hasTemplate' => CertificateTemplate::latestActiveForEmission(CertificateTipoEmissao::Palestrante) !== null,
         ]);
     }
@@ -90,6 +110,85 @@ class PortalEventoPalestranteCertificadoController extends Controller
             'course_name' => $evento->title,
             'evento_nome' => $evento->title,
             'event_id' => $evento->id,
+            'workload_hours' => 0,
+        ];
+
+        if (! $certificate) {
+            $certificate = $this->certificateService->issue([
+                'tenant_id' => $evento->tenant_id,
+                'student_id' => null,
+                'course_id' => null,
+                'event_id' => $evento->id,
+                'certificate_template_id' => $template->id,
+                'snapshot' => $snapshot,
+            ]);
+        } else {
+            $certificate->update([
+                'certificate_template_id' => $template->id,
+                'snapshot' => $snapshot,
+            ]);
+        }
+
+        return app(AdminCertificateController::class)->downloadByHash($certificate->validation_hash);
+    }
+
+    public function storePalestra(Request $request, Event $evento, EventPalestra $palestra): RedirectResponse|\Symfony\Component\HttpFoundation\Response
+    {
+        abort_unless((int) $palestra->event_id === (int) $evento->id, 404);
+        if (! $palestra->hasSpeakerCertificateSetup()) {
+            abort(404);
+        }
+
+        $template = CertificateTemplate::latestActiveForEmission(CertificateTipoEmissao::Palestrante);
+        if (! $template) {
+            return back()->withInput()->with('error', 'Ainda não há template de certificado ativo para palestrante. Contate a organização.');
+        }
+
+        if (! $evento->isCertificateAccessOpen()) {
+            return back()->withInput()->with('error', 'O prazo para emissão/download deste certificado encerrou.');
+        }
+
+        $request->merge([
+            'cpf' => preg_replace('/\D/', '', (string) $request->input('cpf', '')) ?: '',
+        ]);
+
+        $data = $request->validate([
+            'cpf' => ['required', 'string', 'size:11', new CpfRule],
+            'senha' => ['required', 'string', 'min:6', 'max:64'],
+        ], [
+            'cpf.required' => 'Informe o CPF.',
+            'senha.required' => 'Informe a senha fornecida pela organização.',
+        ]);
+
+        $cpf = (string) $data['cpf'];
+
+        if (filled($palestra->palestrante_cpf) && $palestra->palestrante_cpf !== $cpf) {
+            return back()->withInput()->withErrors(['cpf' => 'CPF não confere com o cadastrado para este palestrante.']);
+        }
+
+        if (! Hash::check((string) $data['senha'], (string) $palestra->palestrante_senha)) {
+            return back()->withInput()->withErrors(['senha' => 'Senha incorreta.']);
+        }
+
+        $certificate = Certificate::query()
+            ->where('event_id', $evento->id)
+            ->whereNull('student_id')
+            ->where('status', 'issued')
+            ->where('snapshot->event_palestra_id', $palestra->id)
+            ->latest('id')
+            ->first();
+
+        $snapshot = [
+            'tipo_emissao' => 'palestrante',
+            'is_palestrante' => true,
+            'student_name' => $palestra->palestrante_nome,
+            'palestrante_nome' => $palestra->palestrante_nome,
+            'palestrante_cpf' => $cpf,
+            'course_name' => $palestra->title,
+            'evento_nome' => $evento->title,
+            'palestra_nome' => $palestra->title,
+            'event_id' => $evento->id,
+            'event_palestra_id' => $palestra->id,
             'workload_hours' => 0,
         ];
 

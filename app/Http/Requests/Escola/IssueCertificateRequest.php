@@ -22,6 +22,7 @@ class IssueCertificateRequest extends FormRequest
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
             'event_id' => ['nullable', 'integer', 'exists:events,id'],
+            'event_palestra_id' => ['nullable', 'integer', 'exists:event_palestras,id'],
             'certificate_template_id' => ['nullable', 'integer', 'exists:certificate_templates,id'],
             'snapshot' => ['required', 'array'],
             'pdf_path' => ['nullable', 'string', 'max:255'],

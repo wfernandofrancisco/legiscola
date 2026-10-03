@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\Escola;
 
+use App\Http\Requests\Escola\Concerns\ValidatesEventPalestras;
 use App\Rules\CpfRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreEventRequest extends FormRequest
 {
+    use ValidatesEventPalestras;
+
     public function authorize(): bool
     {
         return true;
@@ -33,6 +37,8 @@ class StoreEventRequest extends FormRequest
             'palestrante_cpf' => $cpf !== '' ? $cpf : null,
             'palestrante_senha' => $this->filled('palestrante_senha') ? $this->input('palestrante_senha') : null,
         ]);
+
+        $this->preparePalestras();
     }
 
     public function rules(): array
@@ -72,7 +78,7 @@ class StoreEventRequest extends FormRequest
                 $this->boolean('allow_online_registration') ? 'after:registration_starts_at' : null,
             ])),
             'max_seats' => ['nullable', 'integer', 'min:0'],
-            'date_time' => ['required', 'date'],
+            'date_time' => [Rule::requiredIf(blank($this->input('palestras'))), 'nullable', 'date'],
             'zipcode' => ['nullable', 'string', 'max:9'],
             'address' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:20'],
@@ -81,6 +87,12 @@ class StoreEventRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:2'],
             'photo' => ['nullable', 'image', 'max:4096'],
+            ...$this->palestraRules(),
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->withPalestraValidator($validator);
     }
 }

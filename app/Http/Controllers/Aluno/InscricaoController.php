@@ -42,8 +42,12 @@ class InscricaoController extends Controller
 
         $events = Event::query()
             ->visibleOnPortal()
+            ->with('palestras')
             ->where('allow_online_registration', true)
-            ->where('date_time', '>=', $now->copy()->startOfDay())
+            ->where(function ($q) use ($now): void {
+                $q->where('date_time', '>=', $now->copy()->startOfDay())
+                    ->orWhereHas('palestras', fn ($p) => $p->where('date_time', '>=', $now->copy()->startOfDay()));
+            })
             ->where(function ($query) use ($now): void {
                 $query->where(function ($inner) use ($now): void {
                     $inner->where('registration_starts_at', '<=', $now)
@@ -93,7 +97,8 @@ class InscricaoController extends Controller
         $student = $this->requireStudent();
 
         try {
-            $this->enrollmentService->inscreverEmEvento((int) $student->id, (int) $evento->id);
+            $palestraIds = collect(request()->input('palestra_ids', []))->map(fn ($id) => (int) $id)->all();
+            $this->enrollmentService->inscreverEmEvento((int) $student->id, (int) $evento->id, $palestraIds);
         } catch (ValidationException $exception) {
             return back()->with('error', collect($exception->errors())->flatten()->first());
         }

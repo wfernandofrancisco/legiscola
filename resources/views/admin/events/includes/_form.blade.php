@@ -1,5 +1,41 @@
+@php
+    $palestrasForm = old('palestras');
+    if (! is_array($palestrasForm)) {
+        $palestrasForm = $event?->relationLoaded('palestras')
+            ? $event->palestras
+            : ($event?->palestras ?? collect());
+        $palestrasForm = collect($palestrasForm)->map(fn ($row) => [
+            'id' => $row->id ?? null,
+            'title' => $row->title ?? '',
+            'date_time' => optional($row->date_time)->format('Y-m-d\TH:i') ?? '',
+            'com_certificado' => (bool) ($row->com_certificado ?? false),
+            'palestrante_nome' => $row->palestrante_nome ?? '',
+            'palestrante_cpf' => $row->palestrante_cpf ?? '',
+            'palestrante_senha' => '',
+            'has_senha' => filled($row->palestrante_senha ?? null),
+            'cert_url' => ($row instanceof \App\Models\EventPalestra && $row->hasSpeakerCertificateSetup())
+                ? $row->speakerCertificatePublicUrl()
+                : '',
+        ])->values()->all();
+    } else {
+        $palestrasForm = array_values(array_map(function ($row) {
+            return [
+                'id' => $row['id'] ?? null,
+                'title' => $row['title'] ?? '',
+                'date_time' => $row['date_time'] ?? '',
+                'com_certificado' => ! empty($row['com_certificado']),
+                'palestrante_nome' => $row['palestrante_nome'] ?? '',
+                'palestrante_cpf' => $row['palestrante_cpf'] ?? '',
+                'palestrante_senha' => $row['palestrante_senha'] ?? '',
+                'has_senha' => false,
+                'cert_url' => '',
+            ];
+        }, $palestrasForm));
+    }
+@endphp
 <form method="POST" action="{{ $action === 'edit' ? route('admin.eventos.update', $event) : route('admin.eventos.store') }}"
     enctype="multipart/form-data"
+    x-data="eventPalestrasForm(@js($palestrasForm))"
     class="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
     @csrf
     @if ($action === 'edit')
@@ -31,7 +67,8 @@
                 <input type="hidden" name="date_time" value="{{ $licencaCatalogo->palestra_em->format('Y-m-d\TH:i') }}">
             </div>
         @else
-            <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local" :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))" />
+            <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local" :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))"
+                hint="Se houver palestras abaixo, esta data vira a da primeira sessão." />
         @endif
         @if ($travaModalidade)
             <x-form.select name="modalidade_display" label="Modalidade" disabled
@@ -89,8 +126,84 @@
                     :value="old('presenca_fim_em', optional($event?->presenca_fim_em)->format('Y-m-d\TH:i'))" />
             </div>
         </div>
+        <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras e sessões (opcional)</h3>
+                    <p class="mt-1 text-xs text-indigo-800/80 dark:text-indigo-300/80">
+                        Deixe vazio para um evento de um dia só. Se houver mais de um dia ou mais de um palestrante, cadastre cada sessão.
+                        Na inscrição o aluno escolhe 1, 2 ou todas. Cada palestra pode ter certificado e professor próprios.
+                    </p>
+                </div>
+                <button type="button" @click="addPalestra()"
+                    class="inline-flex rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+                    Adicionar palestra
+                </button>
+            </div>
+
+            @error('palestras')
+                <p class="text-xs text-red-600">{{ $message }}</p>
+            @enderror
+
+            <template x-if="palestras.length === 0">
+                <p class="rounded-lg border border-dashed border-indigo-200 bg-white/70 px-3 py-3 text-xs text-indigo-700 dark:border-indigo-800 dark:bg-slate-900/40 dark:text-indigo-300">
+                    Nenhuma palestra extra. O evento segue com a data única acima.
+                </p>
+            </template>
+
+            <template x-for="(palestra, index) in palestras" :key="index">
+                <div class="rounded-xl border border-indigo-200 bg-white p-4 dark:border-indigo-900 dark:bg-slate-900/50">
+                    <input type="hidden" :name="'palestras['+index+'][id]'" :value="palestra.id || ''">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300" x-text="'Sessão ' + (index + 1)"></p>
+                        <button type="button" @click="removePalestra(index)" class="text-xs font-semibold text-red-600 hover:underline">Remover</button>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Título da palestra</label>
+                            <input type="text" :name="'palestras['+index+'][title]'" x-model="palestra.title"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Data e hora</label>
+                            <input type="datetime-local" :name="'palestras['+index+'][date_time]'" x-model="palestra.date_time"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Palestrante</label>
+                            <input type="text" :name="'palestras['+index+'][palestrante_nome]'" x-model="palestra.palestrante_nome"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">CPF do palestrante (opcional)</label>
+                            <input type="text" :name="'palestras['+index+'][palestrante_cpf]'" x-model="palestra.palestrante_cpf" data-mask="cpf"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Senha do palestrante</label>
+                            <div class="flex gap-2">
+                                <input type="text" :name="'palestras['+index+'][palestrante_senha]'" x-model="palestra.palestrante_senha"
+                                    :placeholder="palestra.has_senha ? 'Deixe em branco para manter' : 'Mínimo 6 caracteres'"
+                                    class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                                <button type="button" @click="gerarSenha(index)" class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700">Gerar</button>
+                            </div>
+                        </div>
+                        <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" value="1" :name="'palestras['+index+'][com_certificado]'" x-model="palestra.com_certificado" class="rounded border-gray-300 text-indigo-600">
+                            Certificado desta palestra
+                        </label>
+                    </div>
+                    <template x-if="palestra.cert_url">
+                        <p class="mt-3 break-all text-[11px] text-emerald-700 dark:text-emerald-300">
+                            Link do palestrante: <span x-text="palestra.cert_url"></span>
+                        </p>
+                    </template>
+                </div>
+            </template>
+        </div>
+
         <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/40">
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Certificado do palestrante</h3>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Certificado do palestrante (evento de um dia)</h3>
             <p class="text-xs text-gray-500 dark:text-gray-400">
                 Preencha para gerar um link público em que o palestrante informa CPF e senha e baixa o certificado
                 (template ativo do tipo «Palestrante»).
@@ -162,6 +275,36 @@
 @once
     @push('scripts')
         <script>
+            window.eventPalestrasForm = function (initial) {
+                return {
+                    palestras: Array.isArray(initial) ? initial : [],
+                    addPalestra() {
+                        this.palestras.push({
+                            id: null,
+                            title: '',
+                            date_time: '',
+                            com_certificado: false,
+                            palestrante_nome: '',
+                            palestrante_cpf: '',
+                            palestrante_senha: '',
+                            has_senha: false,
+                            cert_url: ''
+                        });
+                    },
+                    removePalestra(index) {
+                        this.palestras.splice(index, 1);
+                    },
+                    gerarSenha(index) {
+                        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+                        var out = '';
+                        for (var i = 0; i < 10; i++) {
+                            out += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        this.palestras[index].palestrante_senha = out;
+                    }
+                };
+            };
+
             (function() {
                 var zipcode = document.getElementById('zipcode');
                 var address = document.getElementById('address');
