@@ -25,7 +25,13 @@
                                 class="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
                             <div>
                                 <p class="font-semibold text-gray-900 dark:text-white">{{ $event->title }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Vagas: {{ $event->max_seats }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    @if (($event->palestras_count ?? $event->palestras?->count()) > 0)
+                                        Vagas por palestra
+                                    @else
+                                        Vagas: {{ $event->max_seats ?? 'Ilimitadas' }}
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </td>
@@ -95,7 +101,13 @@
 
                                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                     <p class="text-gray-700 dark:text-gray-300"><span class="font-semibold">Cidade:</span> {{ $event->city ?: '—' }}</p>
-                                    <p class="text-gray-700 dark:text-gray-300"><span class="font-semibold">Vagas:</span> {{ $event->max_seats ?? 'Ilimitadas' }}</p>
+                                    <p class="text-gray-700 dark:text-gray-300"><span class="font-semibold">Vagas:</span>
+                                        @if (($event->palestras_count ?? $event->palestras?->count()) > 0)
+                                            por palestra
+                                        @else
+                                            {{ $event->max_seats ?? 'Ilimitadas' }}
+                                        @endif
+                                    </p>
                                     <p class="text-gray-700 dark:text-gray-300 md:col-span-2"><span class="font-semibold">Endereço:</span>
                                         {{ $event->address ?: '—' }} {{ $event->number ?: '' }} {{ $event->district ? '- '.$event->district : '' }}
                                     </p>

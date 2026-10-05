@@ -15,7 +15,9 @@ class EventRepository implements EventRepositoryInterface
 
     public function findById(int $id): ?Event
     {
-        return $this->model->query()->with('palestras')->find($id);
+        return $this->model->query()
+            ->with(['palestras' => fn ($q) => $q->withCount('enrollmentPalestras')])
+            ->find($id);
     }
 
     public function listOpenForEnrollment(): Collection
@@ -23,7 +25,7 @@ class EventRepository implements EventRepositoryInterface
         $now = CarbonImmutable::now();
 
         return $this->model->query()
-            ->with('palestras')
+            ->with(['palestras' => fn ($q) => $q->withCount('enrollmentPalestras')])
             ->where('allow_online_registration', true)
             ->where(function ($q) use ($now): void {
                 $q->where('date_time', '>=', $now)
@@ -45,7 +47,7 @@ class EventRepository implements EventRepositoryInterface
     public function paginateFiltered(int $perPage = 15, ?string $search = null): LengthAwarePaginator
     {
         return $this->model->query()
-            ->with('palestras')
+            ->with(['palestras' => fn ($q) => $q->withCount('enrollmentPalestras')])
             ->withCount(['enrollments', 'palestras'])
             ->when($search, fn ($query) => $query->where('title', 'like', "%{$search}%"))
             ->latest('date_time')

@@ -18,6 +18,7 @@ class EventPalestra extends Model
         'ordem',
         'title',
         'date_time',
+        'max_seats',
         'com_certificado',
         'palestrante_nome',
         'palestrante_cpf',
@@ -34,6 +35,7 @@ class EventPalestra extends Model
             'date_time' => 'datetime',
             'com_certificado' => 'boolean',
             'ordem' => 'integer',
+            'max_seats' => 'integer',
         ];
     }
 
@@ -45,6 +47,47 @@ class EventPalestra extends Model
     public function enrollmentPalestras(): HasMany
     {
         return $this->hasMany(EventEnrollmentPalestra::class);
+    }
+
+    public function occupiedSeats(): int
+    {
+        if (array_key_exists('enrollment_palestras_count', $this->attributes)) {
+            return (int) $this->attributes['enrollment_palestras_count'];
+        }
+
+        return $this->enrollmentPalestras()->count();
+    }
+
+    public function remainingSeats(): ?int
+    {
+        if ($this->max_seats === null) {
+            return null;
+        }
+
+        return max(0, (int) $this->max_seats - $this->occupiedSeats());
+    }
+
+    public function hasVacancy(): bool
+    {
+        if ($this->max_seats === null) {
+            return true;
+        }
+
+        return $this->occupiedSeats() < (int) $this->max_seats;
+    }
+
+    public function seatsLabel(): string
+    {
+        if ($this->max_seats === null) {
+            return 'Vagas ilimitadas';
+        }
+
+        $restantes = $this->remainingSeats() ?? 0;
+        if ($restantes === 0) {
+            return 'Lotada ('.$this->max_seats.' '.($this->max_seats === 1 ? 'vaga' : 'vagas').')';
+        }
+
+        return $restantes.' '.($restantes === 1 ? 'vaga restante' : 'vagas restantes').' de '.$this->max_seats;
     }
 
     public function hasSpeakerCertificateSetup(): bool

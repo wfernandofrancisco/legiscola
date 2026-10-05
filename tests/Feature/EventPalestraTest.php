@@ -45,7 +45,7 @@ function evp2Admin(Tenant $tenant): User
     return $user;
 }
 
-function evp2Student(Tenant $tenant): Student
+function evp2Student(Tenant $tenant, string $cpf = '52998224725'): Student
 {
     $user = User::create([
         'tenant_id' => $tenant->id,
@@ -63,7 +63,7 @@ function evp2Student(Tenant $tenant): Student
         'user_id' => $user->id,
         'email' => $user->email,
         'enrollment_number' => 'EP-'.fake()->unique()->numerify('######'),
-        'cpf' => '52998224725',
+        'cpf' => $cpf,
         'cidade' => 'Araras',
         'status' => 'ativo',
     ]);
@@ -84,6 +84,7 @@ it('admin cria evento com duas palestras e sincroniza a data principal', functio
                 [
                     'title' => 'Abertura',
                     'date_time' => now()->addDays(2)->format('Y-m-d\TH:i'),
+                    'max_seats' => 40,
                     'com_certificado' => '1',
                     'palestrante_nome' => 'Ana Silva',
                     'palestrante_senha' => 'senha123',
@@ -91,6 +92,7 @@ it('admin cria evento com duas palestras e sincroniza a data principal', functio
                 [
                     'title' => 'Encerramento',
                     'date_time' => now()->addDays(3)->format('Y-m-d\TH:i'),
+                    'max_seats' => 25,
                     'palestrante_nome' => 'Bruno Souza',
                     'palestrante_senha' => 'senha456',
                 ],
@@ -101,7 +103,22 @@ it('admin cria evento com duas palestras e sincroniza a data principal', functio
     $event = Event::query()->where('title', 'Congresso legislativo')->first();
     expect($event)->not->toBeNull()
         ->and($event->palestras)->toHaveCount(2)
-        ->and($event->date_time->equalTo($event->palestras->first()->date_time))->toBeTrue();
+        ->and($event->date_time->equalTo($event->palestras->first()->date_time))->toBeTrue()
+        ->and((int) $event->palestras->firstWhere('title', 'Abertura')->max_seats)->toBe(40)
+        ->and((int) $event->palestras->firstWhere('title', 'Encerramento')->max_seats)->toBe(25);
+});
+
+it('explica na tela de criar que vagas ficam em cada palestra', function () {
+    $tenant = evp2Tenant();
+    $admin = evp2Admin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/eventos/create')
+        ->assertOk()
+        ->assertSee('Vagas desta palestra')
+        ->assertSee('próprio teto de vagas')
+        ->assertSee('vaga desconta só da palestra escolhida');
 });
 
 it('inscrição de evento com palestras exige escolher ao menos uma', function () {
@@ -161,4 +178,70 @@ it('evento de um dia continua inscrito sem escolher palestra', function () {
 
     expect(EventEnrollment::query()->where('event_id', $event->id)->where('student_id', $student->id)->exists())->toBeTrue()
         ->and(EventEnrollmentPalestra::query()->count())->toBe(0);
+});
+
+it('inscrição respeita vagas por palestra e não o teto do evento', function () {
+    $tenant = evp2Tenant();
+    TenantContext::set($tenant->id);
+    $event = Event::forceCreate([
+        'tenant_id' => $tenant->id,
+        'title' => 'Congresso com vagas por sessão',
+        'allow_online_registration' => true,
+        'registration_starts_at' => now()->subDay(),
+        'registration_ends_at' => now()->addDays(5),
+        'date_time' => now()->addDays(2),
+        'max_seats' => 1,
+    ]);
+    $lotada = EventPalestra::query()->create([
+        'tenant_id' => $tenant->id,
+        'event_id' => $event->id,
+        'ordem' => 1,
+        'title' => 'Sala pequena',
+        'date_time' => now()->addDays(2),
+        'max_seats' => 1,
+        'com_certificado' => true,
+    ]);
+    $aberta = EventPalestra::query()->create([
+        'tenant_id' => $tenant->id,
+        'event_id' => $event->id,
+        'ordem' => 2,
+        'title' => 'Auditório',
+        'date_time' => now()->addDays(3),
+        'max_seats' => 2,
+        'com_certificado' => true,
+    ]);
+    $aluno1 = evp2Student($tenant, '52998224725');
+    $aluno2 = evp2Student($tenant, '39053344705');
+
+    app(EnrollmentService::class)->inscreverEmEvento((int) $aluno1->id, (int) $event->id, [$lotada->id]);
+
+    expect(fn () => app(EnrollmentService::class)->inscreverEmEvento((int) $aluno2->id, (int) $event->id, [$lotada->id]))
+        ->toThrow(ValidationException::class);
+
+    app(EnrollmentService::class)->inscreverEmEvento((int) $aluno2->id, (int) $event->id, [$aberta->id]);
+
+    expect(EventEnrollmentPalestra::query()->where('event_palestra_id', $lotada->id)->count())->toBe(1)
+        ->and(EventEnrollmentPalestra::query()->where('event_palestra_id', $aberta->id)->count())->toBe(1)
+        ->and(EventEnrollment::query()->where('event_id', $event->id)->count())->toBe(2);
+});
+
+it('evento de um dia ainda usa o teto de vagas do evento', function () {
+    $tenant = evp2Tenant();
+    TenantContext::set($tenant->id);
+    $event = Event::forceCreate([
+        'tenant_id' => $tenant->id,
+        'title' => 'Sessão única lotada',
+        'allow_online_registration' => true,
+        'registration_starts_at' => now()->subDay(),
+        'registration_ends_at' => now()->addDays(5),
+        'date_time' => now()->addDays(2),
+        'max_seats' => 1,
+    ]);
+    $aluno1 = evp2Student($tenant, '52998224725');
+    $aluno2 = evp2Student($tenant, '39053344705');
+
+    app(EnrollmentService::class)->inscreverEmEvento((int) $aluno1->id, (int) $event->id);
+
+    expect(fn () => app(EnrollmentService::class)->inscreverEmEvento((int) $aluno2->id, (int) $event->id))
+        ->toThrow(ValidationException::class);
 });

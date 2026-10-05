@@ -44,16 +44,19 @@
                         @if (! $jaInscrito && $event->hasPalestras())
                             <div class="mt-3 space-y-1.5">
                                 @foreach ($event->palestras as $palestra)
-                                    <label class="flex items-start gap-2 text-xs text-slate-300">
-                                        <input type="checkbox" wire:model="palestraIds.{{ $event->id }}" value="{{ $palestra->id }}" class="mt-0.5 rounded border-slate-600 bg-slate-800 text-emerald-500">
-                                        <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m H:i') }}</span>
+                                    @php $lotada = ! $palestra->hasVacancy(); @endphp
+                                    <label class="flex items-start gap-2 text-xs {{ $lotada ? 'text-slate-500' : 'text-slate-300' }}">
+                                        <input type="checkbox" wire:model="palestraIds.{{ $event->id }}" value="{{ $palestra->id }}" class="mt-0.5 rounded border-slate-600 bg-slate-800 text-emerald-500"
+                                            @disabled($lotada)>
+                                        <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m H:i') }} · {{ $palestra->seatsLabel() }}</span>
                                     </label>
                                 @endforeach
                             </div>
                         @endif
-                        <button type="button" wire:click="inscreverEmEvento({{ $event->id }})" @disabled($jaInscrito)
-                            class="mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition {{ $jaInscrito ? 'cursor-not-allowed border border-slate-700 bg-slate-800/50 text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:brightness-110' }}">
-                            {{ $jaInscrito ? 'Já inscrito' : 'Inscrever no evento' }}
+                        @php $semVaga = ! $event->hasVacancyForEnrollment(); @endphp
+                        <button type="button" wire:click="inscreverEmEvento({{ $event->id }})" @disabled($jaInscrito || $semVaga)
+                            class="mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition {{ $jaInscrito || $semVaga ? 'cursor-not-allowed border border-slate-700 bg-slate-800/50 text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:brightness-110' }}">
+                            {{ $jaInscrito ? 'Já inscrito' : ($semVaga ? 'Sem vagas' : 'Inscrever no evento') }}
                         </button>
                     </article>
                 @empty

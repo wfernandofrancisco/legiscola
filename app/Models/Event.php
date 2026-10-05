@@ -293,6 +293,14 @@ class Event extends Model
 
     public function hasVacancyForEnrollment(): bool
     {
+        if ($this->hasPalestras()) {
+            if (! $this->relationLoaded('palestras')) {
+                $this->load(['palestras' => fn ($q) => $q->withCount('enrollmentPalestras')]);
+            }
+
+            return $this->palestras->contains(fn (EventPalestra $palestra) => $palestra->hasVacancy());
+        }
+
         if ($this->max_seats === null) {
             return true;
         }

@@ -42,7 +42,7 @@ class InscricaoController extends Controller
 
         $events = Event::query()
             ->visibleOnPortal()
-            ->with('palestras')
+            ->with(['palestras' => fn ($q) => $q->withCount('enrollmentPalestras')])
             ->where('allow_online_registration', true)
             ->where(function ($q) use ($now): void {
                 $q->where('date_time', '>=', $now->copy()->startOfDay())

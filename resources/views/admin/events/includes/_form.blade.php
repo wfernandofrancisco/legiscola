@@ -8,6 +8,7 @@
             'id' => $row->id ?? null,
             'title' => $row->title ?? '',
             'date_time' => optional($row->date_time)->format('Y-m-d\TH:i') ?? '',
+            'max_seats' => $row->max_seats ?? '',
             'com_certificado' => (bool) ($row->com_certificado ?? false),
             'palestrante_nome' => $row->palestrante_nome ?? '',
             'palestrante_cpf' => $row->palestrante_cpf ?? '',
@@ -23,6 +24,7 @@
                 'id' => $row['id'] ?? null,
                 'title' => $row['title'] ?? '',
                 'date_time' => $row['date_time'] ?? '',
+                'max_seats' => $row['max_seats'] ?? '',
                 'com_certificado' => ! empty($row['com_certificado']),
                 'palestrante_nome' => $row['palestrante_nome'] ?? '',
                 'palestrante_cpf' => $row['palestrante_cpf'] ?? '',
@@ -47,92 +49,127 @@
         $travaVagas = $licencaCatalogo?->locksPalestraSeats();
         $travaModalidade = $licencaCatalogo?->locksPalestraModalidade();
     @endphp
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <x-form.input name="title" label="Título" :value="$event?->title ?? old('title')" />
-        @if ($travaVagas)
+    <div class="space-y-8">
+        <section class="space-y-4">
             <div>
-                <x-form.input name="max_seats_display" label="Vagas" type="number" disabled
-                    :value="$licencaCatalogo->max_inscritos"
-                    hint="Definido pela direção regional — não pode ser alterado." />
-                <input type="hidden" name="max_seats" value="{{ $licencaCatalogo->max_inscritos }}">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">O evento</h3>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Nome, local e texto que o aluno vê no portal.</p>
             </div>
-        @else
-            <x-form.input name="max_seats" label="Vagas" type="number" :value="$event?->max_seats ?? old('max_seats')" />
-        @endif
-        @if ($travaData)
-            <div>
-                <x-form.input name="date_time_display" label="Data e hora do evento" type="datetime-local" disabled
-                    :value="$licencaCatalogo->palestra_em->format('Y-m-d\TH:i')"
-                    hint="Definido pela direção regional — não pode ser alterado." />
-                <input type="hidden" name="date_time" value="{{ $licencaCatalogo->palestra_em->format('Y-m-d\TH:i') }}">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div class="md:col-span-3">
+                    <x-form.input name="title" label="Título" :value="$event?->title ?? old('title')" />
+                </div>
+                @if ($travaModalidade)
+                    <x-form.select name="modalidade_display" label="Modalidade" disabled
+                        :options="\App\Enums\CatalogLicenseModalidade::options()"
+                        :selected="$licencaCatalogo->modalidade->value"
+                        hint="Definido pela direção regional — não pode ser alterado." />
+                @endif
+                <x-form.input id="zipcode" name="zipcode" label="CEP" data-mask="cep" :value="$event?->zipcode ?? old('zipcode')" />
+                <x-form.input id="address" name="address" label="Endereço" :value="$event?->address ?? old('address')" />
+                <x-form.input name="number" label="Número" :value="$event?->number ?? old('number')" />
+                <x-form.input name="complement" label="Complemento" :value="$event?->complement ?? old('complement')" />
+                <x-form.input id="district" name="district" label="Bairro" :value="$event?->district ?? old('district')" />
+                <x-form.input id="city" name="city" label="Cidade" :value="$event?->city ?? old('city')" />
+                <x-form.input id="state" name="state" label="UF" :value="$event?->state ?? old('state')" />
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do evento</label>
+                    <img id="event-photo-preview"
+                        src="{{ $event?->photo_path ? asset('storage/' . $event->photo_path) : 'https://placehold.co/240x140/e5e7eb/6b7280?text=Sem+foto' }}"
+                        alt="Preview da foto do evento"
+                        class="h-28 w-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700 mb-3">
+                    <input id="event-photo-input" type="file" name="photo" accept="image/*"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200" />
+                    @error('photo')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div class="md:col-span-3">
+                    <x-form.textarea name="description" label="Descrição" :value="$event?->description ?? old('description')" rows="5" />
+                </div>
             </div>
-        @else
-            <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local" :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))"
-                hint="Se houver palestras abaixo, esta data vira a da primeira sessão." />
-        @endif
-        @if ($travaModalidade)
-            <x-form.select name="modalidade_display" label="Modalidade" disabled
-                :options="\App\Enums\CatalogLicenseModalidade::options()"
-                :selected="$licencaCatalogo->modalidade->value"
-                hint="Definido pela direção regional — não pode ser alterado." />
-        @endif
-        <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/40">
-            <div class="flex items-center gap-2">
+        </section>
+
+        <section class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Inscrição e vagas</h3>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    Com várias palestras, cada sessão tem o próprio teto de vagas. Evento de um dia: informe as vagas aqui.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2" @if (! $travaVagas) x-show="palestras.length === 0" x-cloak @endif>
+                @if ($travaVagas)
+                    <div>
+                        <x-form.input name="max_seats_display" label="Vagas do evento" type="number" disabled
+                            :value="$licencaCatalogo->max_inscritos"
+                            hint="Definido pela direção regional — não pode ser alterado." />
+                        <input type="hidden" name="max_seats" value="{{ $licencaCatalogo->max_inscritos }}">
+                    </div>
+                @else
+                    <x-form.input name="max_seats" label="Vagas do evento" type="number" :value="$event?->max_seats ?? old('max_seats')"
+                        hint="Em branco = sem limite. Se cadastrar palestras, o teto passa a ser de cada sessão." />
+                @endif
+            </div>
+            <div class="mt-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/60">
+                <div class="flex items-center gap-2">
                 <input id="allow_online_registration" type="checkbox" name="allow_online_registration" value="1"
                     @checked(old('allow_online_registration', $event?->allow_online_registration ?? false))>
                 <label for="allow_online_registration" class="text-sm font-medium text-gray-700 dark:text-gray-300">Permitir inscrição online</label>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Com inscrição online ativa, informe o período em que o aluno pode se inscrever pelo portal.</p>
-            <div id="registration-window-fields" class="grid grid-cols-1 gap-4 md:grid-cols-2 {{ old('allow_online_registration', $event?->allow_online_registration) ? '' : 'hidden' }}">
-                <x-form.input name="registration_starts_at" label="Início das inscrições" type="datetime-local"
-                    :value="old('registration_starts_at', optional($event?->registration_starts_at)->format('Y-m-d\TH:i'))" />
-                <x-form.input name="registration_ends_at" label="Fim das inscrições" type="datetime-local"
-                    :value="old('registration_ends_at', optional($event?->registration_ends_at)->format('Y-m-d\TH:i'))" />
+                <p class="text-xs text-gray-500 dark:text-gray-400">Com inscrição online ativa, informe o período em que o aluno pode se inscrever pelo portal.</p>
+                <div id="registration-window-fields" class="grid grid-cols-1 gap-4 md:grid-cols-2 {{ old('allow_online_registration', $event?->allow_online_registration) ? '' : 'hidden' }}">
+                    <x-form.input name="registration_starts_at" label="Início das inscrições" type="datetime-local"
+                        :value="old('registration_starts_at', optional($event?->registration_starts_at)->format('Y-m-d\TH:i'))" />
+                    <x-form.input name="registration_ends_at" label="Fim das inscrições" type="datetime-local"
+                        :value="old('registration_ends_at', optional($event?->registration_ends_at)->format('Y-m-d\TH:i'))" />
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input id="com_certificado" type="checkbox" name="com_certificado" value="1"
+                        @checked(old('com_certificado', $event?->com_certificado ?? false))>
+                    <label for="com_certificado" class="text-sm font-medium text-gray-700 dark:text-gray-300">Emitir certificado aos presentes</label>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Requer template de certificado ativo com tipo de emissão «evento» e aluno marcado como presente.</p>
+                <div class="pt-1">
+                    <x-form.input name="certificado_disponivel_ate" label="Data limite para emissão do certificado" type="datetime-local"
+                        :value="old('certificado_disponivel_ate', optional($event?->certificado_disponivel_ate)->format('Y-m-d\TH:i'))"
+                        hint="Até esta data o aluno pode acessar e baixar o certificado. Deixe em branco para manter disponível sem prazo." />
+                </div>
             </div>
-            <div class="flex items-center gap-2 pt-2">
-                <input id="com_certificado" type="checkbox" name="com_certificado" value="1"
-                    @checked(old('com_certificado', $event?->com_certificado ?? false))>
-                <label for="com_certificado" class="text-sm font-medium text-gray-700 dark:text-gray-300">Emitir certificado aos presentes</label>
+        </section>
+
+        <section class="space-y-4">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Quando acontece</h3>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    Evento de um dia: preencha a data abaixo. Vários dias ou vários palestrantes: cadastre cada palestra — a data de cada sessão fica nela.
+                </p>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Requer template de certificado ativo com tipo de emissão «evento» e aluno marcado como presente.</p>
-            <div class="pt-1">
-                <x-form.input name="certificado_disponivel_ate" label="Data limite para emissão do certificado" type="datetime-local"
-                    :value="old('certificado_disponivel_ate', optional($event?->certificado_disponivel_ate)->format('Y-m-d\TH:i'))"
-                    hint="Até esta data o aluno pode acessar e baixar o certificado. Deixe em branco para manter disponível sem prazo." />
+
+            <div x-show="palestras.length === 0" x-cloak class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                @if ($travaData)
+                    <div>
+                        <x-form.input name="date_time_display" label="Data e hora do evento" type="datetime-local" disabled
+                            :value="$licencaCatalogo->palestra_em->format('Y-m-d\TH:i')"
+                            hint="Definido pela direção regional — não pode ser alterado." />
+                        <input type="hidden" name="date_time" value="{{ $licencaCatalogo->palestra_em->format('Y-m-d\TH:i') }}">
+                    </div>
+                @else
+                    <x-form.input name="date_time" label="Data e hora do evento" type="datetime-local"
+                        :value="old('date_time', optional($event?->date_time)->format('Y-m-d\TH:i'))"
+                        hint="Só use se não for cadastrar palestras abaixo." />
+                @endif
             </div>
-        </div>
-        <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/40">
-            <div class="flex items-center gap-2">
-                <input id="chamada_georreferencia" type="checkbox" name="chamada_georreferencia" value="1"
-                    @checked(old('chamada_georreferencia', $event?->chamada_georreferencia ?? false))>
-                <label for="chamada_georreferencia" class="text-sm font-medium text-gray-700 dark:text-gray-300">Chamada por georreferência</label>
-            </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-                Com esta opção ativa, o aluno inscrito pode registrar presença no portal usando o GPS do celular, desde que esteja dentro do raio e no horário configurados.
+            <p x-show="palestras.length > 0" x-cloak class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200">
+                Com palestras cadastradas, a data do evento na lista é a da <strong>primeira sessão</strong>. As vagas ficam em cada palestra, abaixo.
             </p>
-            <div id="geofence-fields" class="grid grid-cols-1 gap-4 md:grid-cols-3 {{ old('chamada_georreferencia', $event?->chamada_georreferencia) ? '' : 'hidden' }}">
-                <x-form.input name="latitude" label="Latitude" type="number" step="any"
-                    :value="old('latitude', $event?->latitude)"
-                    hint="Ex.: -22.3570" />
-                <x-form.input name="longitude" label="Longitude" type="number" step="any"
-                    :value="old('longitude', $event?->longitude)"
-                    hint="Ex.: -47.3849" />
-                <x-form.input name="geofence_raio_metros" label="Raio (metros)" type="number"
-                    :value="old('geofence_raio_metros', $event?->geofence_raio_metros ?? 100)"
-                    hint="Distância máxima permitida do ponto do evento (10 a 5000 m)." />
-                <x-form.input name="presenca_inicio_em" label="Início da chamada" type="datetime-local"
-                    :value="old('presenca_inicio_em', optional($event?->presenca_inicio_em)->format('Y-m-d\TH:i'))" />
-                <x-form.input name="presenca_fim_em" label="Fim da chamada" type="datetime-local"
-                    :value="old('presenca_fim_em', optional($event?->presenca_fim_em)->format('Y-m-d\TH:i'))" />
-            </div>
-        </div>
-        <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+
+            <div class="flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <h3 class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras e sessões (opcional)</h3>
+                    <h3 class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras (opcional)</h3>
                     <p class="mt-1 text-xs text-indigo-800/80 dark:text-indigo-300/80">
-                        Deixe vazio para um evento de um dia só. Se houver mais de um dia ou mais de um palestrante, cadastre cada sessão.
-                        Na inscrição o aluno escolhe 1, 2 ou todas. Cada palestra pode ter certificado e professor próprios.
+                        Cada sessão tem título, data, vagas e palestrante.
+                        Na inscrição o aluno escolhe uma, algumas ou todas — e a vaga desconta só da palestra escolhida.
                     </p>
                 </div>
                 <button type="button" @click="addPalestra()"
@@ -170,6 +207,13 @@
                                 class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
                         </div>
                         <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Vagas desta palestra</label>
+                            <input type="number" min="1" :name="'palestras['+index+'][max_seats]'" x-model="palestra.max_seats"
+                                placeholder="Sem limite"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Em branco = sem limite. A ocupação conta só quem escolheu esta sessão.</p>
+                        </div>
+                        <div>
                             <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Palestrante</label>
                             <input type="text" :name="'palestras['+index+'][palestrante_nome]'" x-model="palestra.palestrante_nome"
                                 class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
@@ -200,13 +244,39 @@
                     </template>
                 </div>
             </template>
-        </div>
+            </div>
+        </section>
 
-        <div class="md:col-span-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/40">
+        <section class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+            <div class="flex items-center gap-2">
+                <input id="chamada_georreferencia" type="checkbox" name="chamada_georreferencia" value="1"
+                    @checked(old('chamada_georreferencia', $event?->chamada_georreferencia ?? false))>
+                <label for="chamada_georreferencia" class="text-sm font-medium text-gray-700 dark:text-gray-300">Chamada por georreferência</label>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Com esta opção ativa, o aluno inscrito pode registrar presença no portal usando o GPS do celular, desde que esteja dentro do raio e no horário configurados.
+            </p>
+            <div id="geofence-fields" class="grid grid-cols-1 gap-4 md:grid-cols-3 {{ old('chamada_georreferencia', $event?->chamada_georreferencia) ? '' : 'hidden' }}">
+                <x-form.input name="latitude" label="Latitude" type="number" step="any"
+                    :value="old('latitude', $event?->latitude)"
+                    hint="Ex.: -22.3570" />
+                <x-form.input name="longitude" label="Longitude" type="number" step="any"
+                    :value="old('longitude', $event?->longitude)"
+                    hint="Ex.: -47.3849" />
+                <x-form.input name="geofence_raio_metros" label="Raio (metros)" type="number"
+                    :value="old('geofence_raio_metros', $event?->geofence_raio_metros ?? 100)"
+                    hint="Distância máxima permitida do ponto do evento (10 a 5000 m)." />
+                <x-form.input name="presenca_inicio_em" label="Início da chamada" type="datetime-local"
+                    :value="old('presenca_inicio_em', optional($event?->presenca_inicio_em)->format('Y-m-d\TH:i'))" />
+                <x-form.input name="presenca_fim_em" label="Fim da chamada" type="datetime-local"
+                    :value="old('presenca_fim_em', optional($event?->presenca_fim_em)->format('Y-m-d\TH:i'))" />
+            </div>
+        </section>
+
+        <section x-show="palestras.length === 0" x-cloak class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-900/40">
             <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Certificado do palestrante (evento de um dia)</h3>
             <p class="text-xs text-gray-500 dark:text-gray-400">
-                Preencha para gerar um link público em que o palestrante informa CPF e senha e baixa o certificado
-                (template ativo do tipo «Palestrante»).
+                Sem palestras cadastradas, use estes campos. Com várias sessões, o certificado do palestrante fica em cada palestra, acima.
             </p>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <x-form.input name="palestrante_nome" label="Nome do palestrante"
@@ -241,29 +311,7 @@
                     </p>
                 </div>
             @endif
-        </div>
-        <x-form.input id="zipcode" name="zipcode" label="CEP" data-mask="cep" :value="$event?->zipcode ?? old('zipcode')" />
-        <x-form.input id="address" name="address" label="Endereço" :value="$event?->address ?? old('address')" />
-        <x-form.input name="number" label="Número" :value="$event?->number ?? old('number')" />
-        <x-form.input name="complement" label="Complemento" :value="$event?->complement ?? old('complement')" />
-        <x-form.input id="district" name="district" label="Bairro" :value="$event?->district ?? old('district')" />
-        <x-form.input id="city" name="city" label="Cidade" :value="$event?->city ?? old('city')" />
-        <x-form.input id="state" name="state" label="UF" :value="$event?->state ?? old('state')" />
-        <div class="md:col-span-3">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do evento</label>
-            <img id="event-photo-preview"
-                src="{{ $event?->photo_path ? asset('storage/' . $event->photo_path) : 'https://placehold.co/240x140/e5e7eb/6b7280?text=Sem+foto' }}"
-                alt="Preview da foto do evento"
-                class="h-28 w-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700 mb-3">
-            <input id="event-photo-input" type="file" name="photo" accept="image/*"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200" />
-            @error('photo')
-                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-            @enderror
-        </div>
-        <div class="md:col-span-3">
-            <x-form.textarea name="description" label="Descrição" :value="$event?->description ?? old('description')" rows="5" />
-        </div>
+        </section>
     </div>
     <div class="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
         <button type="submit" class="inline-flex rounded-lg bg-indigo-600 text-white px-5 py-2 text-sm font-medium">
@@ -279,10 +327,21 @@
                 return {
                     palestras: Array.isArray(initial) ? initial : [],
                     addPalestra() {
+                        var eventDate = '';
+                        var eventDateInput = document.querySelector('input[name="date_time"]');
+                        if (eventDateInput && eventDateInput.value) {
+                            eventDate = eventDateInput.value;
+                        }
+                        var eventSeats = '';
+                        var eventSeatsInput = document.querySelector('input[name="max_seats"]');
+                        if (eventSeatsInput && eventSeatsInput.value) {
+                            eventSeats = eventSeatsInput.value;
+                        }
                         this.palestras.push({
                             id: null,
                             title: '',
-                            date_time: '',
+                            date_time: this.palestras.length === 0 ? eventDate : '',
+                            max_seats: this.palestras.length === 0 ? eventSeats : '',
                             com_certificado: false,
                             palestrante_nome: '',
                             palestrante_cpf: '',

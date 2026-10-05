@@ -63,6 +63,7 @@
                             @if (filled($palestra->palestrante_nome))
                                 <p class="mt-1 text-slate-600 dark:text-slate-300">{{ $palestra->palestrante_nome }}</p>
                             @endif
+                            <p class="mt-1 text-xs font-medium {{ $palestra->hasVacancy() ? 'text-slate-500 dark:text-slate-400' : 'text-rose-600 dark:text-rose-300' }}">{{ $palestra->seatsLabel() }}</p>
                         </div>
                     @endforeach
                 </div>
@@ -75,7 +76,9 @@
                 </div>
             @endif
 
-            @if($evento->max_seats !== null && $evento->max_seats > 0)
+            @if($evento->hasPalestras())
+                {{-- Vagas aparecem em cada palestra. --}}
+            @elseif($evento->max_seats !== null && $evento->max_seats > 0)
                 <p class="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400">
                     Limite de <span class="font-bold text-slate-900 dark:text-white">{{ $evento->max_seats }}</span> {{ $evento->max_seats === 1 ? 'inscrição' : 'inscrições' }}
                     @if($inscricaoPortalAberta)
@@ -108,17 +111,22 @@
                     <p class="text-sm font-semibold text-slate-900 dark:text-white">Inscrição online</p>
                     @if($jaInscritoNoEvento)
                         <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Você já está inscrito neste evento.</p>
+                    @elseif(! $evento->hasVacancyForEnrollment())
+                        <p class="mt-2 text-sm text-rose-700 dark:text-rose-300">Não há vagas disponíveis{{ $evento->hasPalestras() ? ' nas palestras deste evento' : ' neste evento' }}.</p>
                     @elseif($podeInscricaoPortal)
                         <form method="post" action="{{ route('portal.eventos.inscrever', $evento) }}" class="mt-4 space-y-3">
                             @csrf
                             @if ($evento->hasPalestras())
-                                <p class="text-sm text-slate-600 dark:text-slate-300">Escolha uma, algumas ou todas as palestras:</p>
+                                <p class="text-sm text-slate-600 dark:text-slate-300">Escolha uma, algumas ou todas as palestras. Cada uma tem o próprio limite de vagas.</p>
                                 @foreach ($evento->palestras as $palestra)
-                                    <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-                                        <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-1 rounded border-slate-300 text-indigo-600" checked>
+                                    @php $lotada = ! $palestra->hasVacancy(); @endphp
+                                    <label class="flex items-start gap-3 rounded-xl border px-3 py-2 text-sm {{ $lotada ? 'border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900/40' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60' }}">
+                                        <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-1 rounded border-slate-300 text-indigo-600"
+                                            @checked(! $lotada) @disabled($lotada)>
                                         <span>
-                                            <span class="font-semibold text-slate-900 dark:text-white">{{ $palestra->title }}</span>
+                                            <span class="font-semibold {{ $lotada ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }}">{{ $palestra->title }}</span>
                                             <span class="mt-0.5 block text-xs text-slate-500">{{ $palestra->date_time?->format('d/m/Y H:i') }}@if(filled($palestra->palestrante_nome)) · {{ $palestra->palestrante_nome }}@endif</span>
+                                            <span class="mt-0.5 block text-xs font-medium {{ $lotada ? 'text-rose-600 dark:text-rose-300' : 'text-slate-500' }}">{{ $palestra->seatsLabel() }}</span>
                                         </span>
                                     </label>
                                 @endforeach

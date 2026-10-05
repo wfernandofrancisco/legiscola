@@ -18,6 +18,7 @@ trait ValidatesEventPalestras
             'palestras.*.id' => ['nullable', 'integer'],
             'palestras.*.title' => ['required_with:palestras', 'string', 'max:255'],
             'palestras.*.date_time' => ['required_with:palestras', 'date'],
+            'palestras.*.max_seats' => ['nullable', 'integer', 'min:1'],
             'palestras.*.com_certificado' => ['sometimes', 'boolean'],
             'palestras.*.palestrante_nome' => ['nullable', 'string', 'max:255'],
             'palestras.*.palestrante_cpf' => ['nullable', 'string', 'size:11', new CpfRule],
@@ -41,6 +42,8 @@ trait ValidatesEventPalestras
             $cpf = preg_replace('/\D/', '', (string) ($row['palestrante_cpf'] ?? '')) ?: null;
             $title = trim((string) ($row['title'] ?? ''));
             $date = $row['date_time'] ?? null;
+            $maxSeats = $row['max_seats'] ?? null;
+            $maxSeats = ($maxSeats === '' || $maxSeats === null) ? null : (int) $maxSeats;
 
             if ($title === '' && ! filled($date) && ! filled($row['palestrante_nome'] ?? null) && empty($row['id'])) {
                 continue;
@@ -50,6 +53,7 @@ trait ValidatesEventPalestras
                 'id' => filled($row['id'] ?? null) ? (int) $row['id'] : null,
                 'title' => $title,
                 'date_time' => $date,
+                'max_seats' => $maxSeats,
                 'com_certificado' => ! empty($row['com_certificado']),
                 'palestrante_nome' => filled($row['palestrante_nome'] ?? null) ? trim((string) $row['palestrante_nome']) : null,
                 'palestrante_cpf' => $cpf !== '' ? $cpf : null,

@@ -273,10 +273,15 @@
                     <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras desta inscrição</p>
                     <div class="mt-2 space-y-2">
                         @foreach ($event->palestras as $palestra)
-                            <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            @php $lotada = ! $palestra->hasVacancy(); @endphp
+                            <label class="flex items-start gap-2 text-sm {{ $lotada ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200' }}">
                                 <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-gray-300 text-indigo-600"
-                                    @checked(in_array($palestra->id, old('palestra_ids', $event->palestras->pluck('id')->all()), false) || in_array((string) $palestra->id, old('palestra_ids', []), true))>
-                                <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m/Y H:i') }}</span>
+                                    @disabled($lotada)
+                                    @checked(! $lotada && (in_array($palestra->id, old('palestra_ids', $event->palestras->pluck('id')->all()), false) || in_array((string) $palestra->id, old('palestra_ids', []), true)))>
+                                <span>
+                                    {{ $palestra->title }} · {{ $palestra->date_time?->format('d/m/Y H:i') }}
+                                    <span class="block text-xs {{ $lotada ? 'text-rose-600 dark:text-rose-300' : 'text-gray-500 dark:text-gray-400' }}">{{ $palestra->seatsLabel() }}</span>
+                                </span>
                             </label>
                         @endforeach
                     </div>

@@ -67,15 +67,19 @@
                         <p class="mt-1 text-sm text-slate-400">{{ $event->dateRangeLabel() }}</p>
                         @if ($jaInscrito)
                             <span class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-bold text-slate-500">Já inscrito</span>
+                        @elseif (! $event->hasVacancyForEnrollment())
+                            <span class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-rose-900/60 bg-rose-950/30 px-4 py-2.5 text-sm font-bold text-rose-300">Sem vagas</span>
                         @else
                             <form method="POST" action="{{ route('app.inscricoes.eventos.store', $event) }}" class="mt-4 space-y-2">
                                 @csrf
                                 @if ($event->hasPalestras())
-                                    <p class="text-xs text-slate-400">Escolha as palestras:</p>
+                                    <p class="text-xs text-slate-400">Escolha as palestras (vagas por sessão):</p>
                                     @foreach ($event->palestras as $palestra)
-                                        <label class="flex items-start gap-2 text-xs text-slate-300">
-                                            <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-slate-600 bg-slate-800 text-emerald-500" checked>
-                                            <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m H:i') }}</span>
+                                        @php $lotada = ! $palestra->hasVacancy(); @endphp
+                                        <label class="flex items-start gap-2 text-xs {{ $lotada ? 'text-slate-500' : 'text-slate-300' }}">
+                                            <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-slate-600 bg-slate-800 text-emerald-500"
+                                                @checked(! $lotada) @disabled($lotada)>
+                                            <span>{{ $palestra->title }} · {{ $palestra->date_time?->format('d/m H:i') }} · {{ $palestra->seatsLabel() }}</span>
                                         </label>
                                     @endforeach
                                 @endif

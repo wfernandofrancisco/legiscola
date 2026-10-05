@@ -64,7 +64,7 @@ class EventController extends Controller
     public function edit(Event $evento): View
     {
         $event = $evento->load([
-            'palestras',
+            'palestras' => fn ($q) => $q->withCount('enrollmentPalestras'),
             'enrollments' => fn ($q) => $q->latest('id'),
             'enrollments.student.user',
             'enrollments.palestraSelections.palestra',

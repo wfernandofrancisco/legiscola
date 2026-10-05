@@ -122,11 +122,8 @@ class EnrollmentService implements EnrollmentServiceInterface
             throw ValidationException::withMessages(['event_id' => 'Você já está inscrito neste evento.']);
         }
 
-        if (! $event->hasVacancyForEnrollment()) {
-            throw ValidationException::withMessages(['event_id' => 'Evento sem vagas disponíveis.']);
-        }
-
         $palestraIds = $this->resolvePalestraIds($event, $palestraIds);
+        $this->assertVacancyForEnrollment($event, $palestraIds, false);
 
         $enrollment = EventEnrollment::query()->create([
             'tenant_id' => TenantContext::getTenantId() ?? $event->tenant_id,
@@ -152,13 +149,8 @@ class EnrollmentService implements EnrollmentServiceInterface
             throw ValidationException::withMessages(['email' => 'Este participante já está inscrito neste evento.']);
         }
 
-        if (! $event->hasVacancyForEnrollment()) {
-            throw ValidationException::withMessages([
-                'event_id' => 'Evento sem vagas disponíveis. Aumente o limite de vagas para incluir mais participantes.',
-            ]);
-        }
-
         $palestraIds = $this->resolvePalestraIds($event, $palestraIds, true);
+        $this->assertVacancyForEnrollment($event, $palestraIds, true);
 
         $enrollment = EventEnrollment::query()->create([
             'tenant_id' => TenantContext::getTenantId() ?? $event->tenant_id,
@@ -198,6 +190,40 @@ class EnrollmentService implements EnrollmentServiceInterface
         }
 
         return $ids;
+    }
+
+    /**
+     * @param  list<int>  $palestraIds
+     */
+    private function assertVacancyForEnrollment(Event $event, array $palestraIds, bool $admin): void
+    {
+        if ($palestraIds !== []) {
+            $event->loadMissing('palestras');
+            $byId = $event->palestras->keyBy('id');
+
+            foreach ($palestraIds as $palestraId) {
+                $palestra = $byId->get($palestraId);
+                if (! $palestra || $palestra->hasVacancy()) {
+                    continue;
+                }
+
+                throw ValidationException::withMessages([
+                    $admin ? 'palestra_ids' : 'palestra_ids' => 'Não há vagas disponíveis na palestra «'.$palestra->title.'».',
+                ]);
+            }
+
+            return;
+        }
+
+        if ($event->hasVacancyForEnrollment()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            $admin ? 'event_id' : 'event_id' => $admin
+                ? 'Evento sem vagas disponíveis. Aumente o limite de vagas para incluir mais participantes.'
+                : 'Evento sem vagas disponíveis.',
+        ]);
     }
 
     /**

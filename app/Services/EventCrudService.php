@@ -48,6 +48,7 @@ class EventCrudService implements EventCrudServiceInterface
                 unset($data['date_time']);
             }
         }
+        $ok = $this->eventRepository->update($event, $this->normalize($data, false, $event));
         $this->syncPalestras($event, is_array($palestras) ? $palestras : []);
 
         return $ok;
@@ -139,6 +140,7 @@ class EventCrudService implements EventCrudServiceInterface
                 'ordem' => (int) ($row['ordem'] ?? $index + 1),
                 'title' => $title,
                 'date_time' => $dateTime,
+                'max_seats' => filled($row['max_seats'] ?? null) ? (int) $row['max_seats'] : null,
                 'com_certificado' => (bool) ($row['com_certificado'] ?? false),
                 'palestrante_nome' => filled($row['palestrante_nome'] ?? null) ? trim((string) $row['palestrante_nome']) : null,
                 'palestrante_cpf' => $row['palestrante_cpf'] ?? null,
