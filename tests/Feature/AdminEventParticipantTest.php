@@ -138,6 +138,121 @@ it('admin reaproveita aluno existente pelo e-mail', function () {
         ->and(User::query()->where('email', $alunoUser->email)->count())->toBe(1);
 });
 
+it('admin inscreve aluno existente pela busca, sem criar outro cadastro', function () {
+    $tenant = evpCreateTenant();
+    $admin = evpMakeAdmin($tenant);
+    $event = evpCreateEvent($tenant);
+    $host = evpTenantHost($tenant);
+
+    $alunoUser = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'João Existente',
+        'email' => 'joao-busca-'.fake()->unique()->safeEmail(),
+        'password' => Hash::make('password'),
+        'user_type' => User::TYPE_TENANT_USER,
+        'status' => User::STATUS_ATIVO,
+        'email_verified_at' => now(),
+    ]);
+    $alunoUser->assignRole('tenant_user');
+
+    $student = Student::forceCreate([
+        'tenant_id' => $tenant->id,
+        'user_id' => $alunoUser->id,
+        'email' => $alunoUser->email,
+        'enrollment_number' => 'EV-'.fake()->unique()->numerify('######'),
+        'cpf' => '39053344705',
+        'cidade' => 'Araras',
+        'status' => 'ativo',
+    ]);
+
+    $this->actingAs($admin)
+        ->post('http://'.$host.'/admin/escola/eventos/'.$event->id.'/inscricoes', [
+            'student_id' => $student->id,
+            'presente' => '1',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect(Student::query()->where('email', $alunoUser->email)->count())->toBe(1)
+        ->and(EventEnrollment::query()
+            ->where('event_id', $event->id)
+            ->where('student_id', $student->id)
+            ->where('presente', true)
+            ->exists())->toBeTrue();
+});
+
+it('busca de alunos do evento encontra por nome e omite quem já está inscrito', function () {
+    $tenant = evpCreateTenant();
+    $admin = evpMakeAdmin($tenant);
+    $event = evpCreateEvent($tenant);
+    $host = evpTenantHost($tenant);
+
+    $livreUser = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Ana Livre',
+        'email' => 'ana-livre-'.fake()->unique()->safeEmail(),
+        'password' => Hash::make('password'),
+        'user_type' => User::TYPE_TENANT_USER,
+        'status' => User::STATUS_ATIVO,
+        'email_verified_at' => now(),
+    ]);
+    $livreUser->assignRole('tenant_user');
+    $livre = Student::forceCreate([
+        'tenant_id' => $tenant->id,
+        'user_id' => $livreUser->id,
+        'email' => $livreUser->email,
+        'enrollment_number' => 'EV-'.fake()->unique()->numerify('######'),
+        'cpf' => '52998224725',
+        'cidade' => 'Araras',
+        'status' => 'ativo',
+    ]);
+
+    $inscritoUser = User::create([
+        'tenant_id' => $tenant->id,
+        'name' => 'Ana Inscrita',
+        'email' => 'ana-inscrita-'.fake()->unique()->safeEmail(),
+        'password' => Hash::make('password'),
+        'user_type' => User::TYPE_TENANT_USER,
+        'status' => User::STATUS_ATIVO,
+        'email_verified_at' => now(),
+    ]);
+    $inscritoUser->assignRole('tenant_user');
+    $inscrito = Student::forceCreate([
+        'tenant_id' => $tenant->id,
+        'user_id' => $inscritoUser->id,
+        'email' => $inscritoUser->email,
+        'enrollment_number' => 'EV-'.fake()->unique()->numerify('######'),
+        'cpf' => '39053344705',
+        'cidade' => 'Araras',
+        'status' => 'ativo',
+    ]);
+    EventEnrollment::forceCreate([
+        'tenant_id' => $tenant->id,
+        'event_id' => $event->id,
+        'student_id' => $inscrito->id,
+        'presente' => false,
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson('http://'.$host.'/admin/escola/eventos/'.$event->id.'/alunos-busca?q=Ana')
+        ->assertOk()
+        ->assertJsonFragment(['id' => $livre->id, 'name' => 'Ana Livre'])
+        ->assertJsonMissing(['id' => $inscrito->id]);
+});
+
+it('tela de editar evento pede busca de aluno antes do cadastro na hora', function () {
+    $tenant = evpCreateTenant();
+    $admin = evpMakeAdmin($tenant);
+    $event = evpCreateEvent($tenant);
+    $host = evpTenantHost($tenant);
+
+    $this->actingAs($admin)
+        ->get('http://'.$host.'/admin/escola/eventos/'.$event->id.'/edit')
+        ->assertOk()
+        ->assertSee('Busque um aluno já cadastrado')
+        ->assertSee('Não encontrei — cadastrar aluno agora');
+});
+
 it('admin não duplica inscrição do mesmo participante no evento', function () {
     $tenant = evpCreateTenant();
     $admin = evpMakeAdmin($tenant);

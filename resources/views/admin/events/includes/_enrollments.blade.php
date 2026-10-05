@@ -227,19 +227,46 @@
     @endif
 </div>
 
+@php
+    $participantStep = 'search';
+    $participantSelected = null;
+    if (old('student_id')) {
+        $found = \App\Models\Student::query()->with('user')->find((int) old('student_id'));
+        if ($found) {
+            $participantStep = 'existing';
+            $cpf = preg_replace('/\D/', '', (string) $found->cpf) ?? '';
+            $participantSelected = [
+                'id' => $found->id,
+                'name' => $found->user?->name ?? 'Sem nome',
+                'email' => $found->user?->email ?? $found->email ?? '',
+                'cpf' => strlen($cpf) === 11
+                    ? substr($cpf, 0, 3).'.'.substr($cpf, 3, 3).'.'.substr($cpf, 6, 3).'-'.substr($cpf, 9, 2)
+                    : '',
+                'cidade' => $found->cidade ?: '',
+            ];
+        }
+    } elseif ($errors->eventParticipant->isNotEmpty()) {
+        $participantStep = 'create';
+    }
+@endphp
 <dialog id="add-event-participant-modal"
-    class="fixed left-1/2 top-1/2 z-[80] m-0 w-[calc(100%-1.5rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-xl border-0 bg-white p-0 shadow-2xl dark:bg-gray-800 backdrop:bg-black/60">
-    <form method="POST" action="{{ route('admin.eventos.inscricao.store', $event) }}"
-        class="max-h-[90vh] overflow-y-auto">
-        @csrf
-        <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-700">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Lista de presença</p>
-            <h3 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Adicionar participante</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Cria o cadastro de aluno (usuário de acesso) se ainda não existir e inscreve nesta edição.
-            </p>
-        </div>
+    class="fixed left-1/2 top-1/2 z-[80] m-0 w-[calc(100%-1.5rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-xl border-0 bg-white p-0 shadow-2xl dark:bg-gray-800 backdrop:bg-black/60"
+    x-data="eventParticipantModal({
+        searchUrl: @js(route('admin.eventos.alunos.search', $event)),
+        step: @js($participantStep),
+        selected: @js($participantSelected),
+    })">
+    <div class="border-b border-gray-100 px-6 py-5 dark:border-gray-700">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Lista de presença</p>
+        <h3 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Adicionar participante</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Busque um aluno já cadastrado. Só cadastre na hora se a busca não encontrar ninguém.
+        </p>
+    </div>
 
+    <form method="POST" action="{{ route('admin.eventos.inscricao.store', $event) }}"
+        class="max-h-[70vh] overflow-y-auto" @submit="if (step === 'search') { $event.preventDefault() }">
+        @csrf
         <div class="space-y-4 px-6 py-5">
             @if ($errors->eventParticipant->isNotEmpty())
                 <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
@@ -251,49 +278,99 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <x-form.input id="participant_name" name="name" label="Nome completo" :required="true" :value="old('name')" autocomplete="name" />
-                <x-form.input id="participant_cpf" name="cpf" label="CPF" data-mask="cpf" :required="true" :value="old('cpf')" inputmode="numeric" />
-                <x-form.date id="participant_birth_date" name="birth_date" label="Data de nascimento" :required="true" :value="old('birth_date')" />
-                <x-form.select id="participant_sexo" name="sexo" label="Sexo" :required="true" :selected="old('sexo')" :options="[
-                    'masculino' => 'Masculino',
-                    'feminino' => 'Feminino',
-                    'outro' => 'Outro',
-                    'nao_informado' => 'Não informado',
-                ]" />
-                <x-form.input id="participant_email" name="email" label="E-mail" type="email" :required="true" :value="old('email')" autocomplete="email" />
-                <x-form.input id="participant_cidade" name="cidade" label="Cidade" :required="true" :value="old('cidade')" />
-                <x-form.input id="participant_password" name="password" label="Senha (opcional)" type="password" autocomplete="new-password"
-                    hint="Se ficar em branco, o aluno recebe e-mail para definir a senha." />
-                <x-form.input id="participant_password_confirmation" name="password_confirmation" label="Confirmar senha" type="password" autocomplete="new-password" />
-            </div>
-
-            @if ($event->hasPalestras())
-                <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 dark:border-indigo-900 dark:bg-indigo-950/30">
-                    <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras desta inscrição</p>
-                    <div class="mt-2 space-y-2">
-                        @foreach ($event->palestras as $palestra)
-                            @php $lotada = ! $palestra->hasVacancy(); @endphp
-                            <label class="flex items-start gap-2 text-sm {{ $lotada ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200' }}">
-                                <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-gray-300 text-indigo-600"
-                                    @disabled($lotada)
-                                    @checked(! $lotada && (in_array($palestra->id, old('palestra_ids', $event->palestras->pluck('id')->all()), false) || in_array((string) $palestra->id, old('palestra_ids', []), true)))>
-                                <span>
-                                    {{ $palestra->title }} · {{ $palestra->date_time?->format('d/m/Y H:i') }}
-                                    <span class="block text-xs {{ $lotada ? 'text-rose-600 dark:text-rose-300' : 'text-gray-500 dark:text-gray-400' }}">{{ $palestra->seatsLabel() }}</span>
-                                </span>
-                            </label>
-                        @endforeach
+            <div x-show="step === 'search'" x-cloak class="space-y-3">
+                <div class="relative">
+                    <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Buscar aluno</label>
+                    <input type="search" x-model="q" @input="onQuery()" autocomplete="off"
+                        placeholder="Nome, e-mail, CPF ou matrícula"
+                        class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Digite pelo menos 2 caracteres.</p>
+                    <div x-show="resultsOpen" x-cloak
+                        class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                        <p x-show="loading" class="px-3 py-2 text-sm text-gray-500">Buscando…</p>
+                        <template x-if="! loading && results.length === 0 && q.trim().length >= 2">
+                            <p class="px-3 py-2 text-sm text-gray-500">Nenhum aluno encontrado nesta busca.</p>
+                        </template>
+                        <template x-for="aluno in results" :key="aluno.id">
+                            <button type="button" @click="pick(aluno)"
+                                class="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+                                <span class="block font-medium" x-text="aluno.name"></span>
+                                <span class="block text-xs text-gray-500" x-text="[aluno.email, aluno.cpf].filter(Boolean).join(' · ')"></span>
+                            </button>
+                        </template>
                     </div>
                 </div>
-            @endif
-            <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-200">
-                <input type="checkbox" name="presente" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" @checked(old('presente'))>
-                <span>
-                    <span class="font-semibold">Já está presente</span>
-                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Marque se a pessoa chegou ao evento e a presença deve constar agora.</span>
-                </span>
-            </label>
+                <button type="button" @click="startCreate()"
+                    class="inline-flex text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-300">
+                    Não encontrei — cadastrar aluno agora
+                </button>
+            </div>
+
+            <div x-show="step === 'existing'" x-cloak class="space-y-3">
+                <input type="hidden" name="student_id" :value="selected?.id || ''" :disabled="step !== 'existing'">
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Aluno selecionado</p>
+                    <p class="mt-1 font-semibold text-gray-900 dark:text-white" x-text="selected?.name"></p>
+                    <p class="text-sm text-gray-600 dark:text-gray-300" x-text="[selected?.email, selected?.cpf, selected?.cidade].filter(Boolean).join(' · ')"></p>
+                </div>
+                <button type="button" @click="backToSearch()" class="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-300">
+                    Buscar outro aluno
+                </button>
+            </div>
+
+            <fieldset x-show="step === 'create'" x-cloak :disabled="step !== 'create'" class="space-y-4 border-0 p-0">
+                <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200">
+                    Este cadastro só deve ser usado se o aluno ainda não existir na escola.
+                </p>
+                <button type="button" @click="backToSearch()" class="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-300">
+                    Voltar à busca
+                </button>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-form.input id="participant_name" name="name" label="Nome completo" :required="true" :value="old('name')" autocomplete="name" />
+                    <x-form.input id="participant_cpf" name="cpf" label="CPF" data-mask="cpf" :required="true" :value="old('cpf')" inputmode="numeric" />
+                    <x-form.date id="participant_birth_date" name="birth_date" label="Data de nascimento" :required="true" :value="old('birth_date')" />
+                    <x-form.select id="participant_sexo" name="sexo" label="Sexo" :required="true" :selected="old('sexo')" :options="[
+                        'masculino' => 'Masculino',
+                        'feminino' => 'Feminino',
+                        'outro' => 'Outro',
+                        'nao_informado' => 'Não informado',
+                    ]" />
+                    <x-form.input id="participant_email" name="email" label="E-mail" type="email" :required="true" :value="old('email')" autocomplete="email" />
+                    <x-form.input id="participant_cidade" name="cidade" label="Cidade" :required="true" :value="old('cidade')" />
+                    <x-form.input id="participant_password" name="password" label="Senha (opcional)" type="password" autocomplete="new-password"
+                        hint="Se ficar em branco, o aluno recebe e-mail para definir a senha." />
+                    <x-form.input id="participant_password_confirmation" name="password_confirmation" label="Confirmar senha" type="password" autocomplete="new-password" />
+                </div>
+            </fieldset>
+
+            <div x-show="step !== 'search'" x-cloak class="space-y-4">
+                @if ($event->hasPalestras())
+                    <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 dark:border-indigo-900 dark:bg-indigo-950/30">
+                        <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Palestras desta inscrição</p>
+                        <div class="mt-2 space-y-2">
+                            @foreach ($event->palestras as $palestra)
+                                @php $lotada = ! $palestra->hasVacancy(); @endphp
+                                <label class="flex items-start gap-2 text-sm {{ $lotada ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200' }}">
+                                    <input type="checkbox" name="palestra_ids[]" value="{{ $palestra->id }}" class="mt-0.5 rounded border-gray-300 text-indigo-600"
+                                        @disabled($lotada)
+                                        @checked(! $lotada && (in_array($palestra->id, old('palestra_ids', $event->palestras->pluck('id')->all()), false) || in_array((string) $palestra->id, old('palestra_ids', []), true)))>
+                                    <span>
+                                        {{ $palestra->title }} · {{ $palestra->date_time?->format('d/m/Y H:i') }}
+                                        <span class="block text-xs {{ $lotada ? 'text-rose-600 dark:text-rose-300' : 'text-gray-500 dark:text-gray-400' }}">{{ $palestra->seatsLabel() }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+                <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-200">
+                    <input type="checkbox" name="presente" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" @checked(old('presente'))>
+                    <span>
+                        <span class="font-semibold">Já está presente</span>
+                        <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Marque se a pessoa chegou ao evento e a presença deve constar agora.</span>
+                    </span>
+                </label>
+            </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
@@ -301,9 +378,9 @@
                 class="inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
                 Cancelar
             </button>
-            <button type="submit"
+            <button type="submit" x-show="step !== 'search'" x-cloak
                 class="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                Inscrever no evento
+                <span x-text="step === 'create' ? 'Cadastrar e inscrever' : 'Inscrever no evento'"></span>
             </button>
         </div>
     </form>
@@ -315,4 +392,70 @@
         });
     </script>
 @endif
+@once
+    @push('scripts')
+        <script>
+            window.eventParticipantModal = function (config) {
+                return {
+                    searchUrl: config.searchUrl,
+                    step: config.step || 'search',
+                    selected: config.selected || null,
+                    q: '',
+                    results: [],
+                    loading: false,
+                    resultsOpen: false,
+                    timer: null,
+                    onQuery() {
+                        var self = this;
+                        clearTimeout(this.timer);
+                        var q = (this.q || '').trim();
+                        this.selected = null;
+                        if (q.length < 2) {
+                            this.results = [];
+                            this.resultsOpen = false;
+                            this.loading = false;
+                            return;
+                        }
+                        this.timer = setTimeout(function () { self.fetchStudents(q); }, 280);
+                    },
+                    fetchStudents(q) {
+                        var self = this;
+                        this.loading = true;
+                        this.resultsOpen = true;
+                        fetch(this.searchUrl + '?q=' + encodeURIComponent(q), {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                        })
+                            .then(function (res) { return res.json(); })
+                            .then(function (data) {
+                                self.results = Array.isArray(data) ? data : [];
+                                self.loading = false;
+                                self.resultsOpen = true;
+                            })
+                            .catch(function () {
+                                self.results = [];
+                                self.loading = false;
+                                self.resultsOpen = true;
+                            });
+                    },
+                    pick(aluno) {
+                        this.selected = aluno;
+                        this.step = 'existing';
+                        this.resultsOpen = false;
+                    },
+                    startCreate() {
+                        this.step = 'create';
+                        this.selected = null;
+                        this.resultsOpen = false;
+                    },
+                    backToSearch() {
+                        this.step = 'search';
+                        this.selected = null;
+                        this.resultsOpen = false;
+                    }
+                };
+            };
+        </script>
+    @endpush
+@endonce
+
 

@@ -14,8 +14,10 @@ use App\Models\Certificate;
 use App\Models\CertificateTemplate;
 use App\Models\Event;
 use App\Models\EventEnrollment;
+use App\Models\Student;
 use App\Models\TenantAdminSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -156,6 +158,49 @@ class EventController extends Controller
         return back()->with('success', 'Todos os inscritos foram marcados como presentes.');
     }
 
+    public function searchStudents(Request $request, Event $evento): JsonResponse
+    {
+        $term = trim((string) $request->string('q'));
+        $digits = preg_replace('/\D/', '', $term) ?? '';
+
+        $results = Student::query()
+            ->with('user:id,name,email')
+            ->whereDoesntHave('eventEnrollments', fn ($q) => $q->where('event_id', $evento->id))
+            ->when($term !== '', function ($query) use ($term, $digits): void {
+                $query->where(function ($q) use ($term, $digits): void {
+                    $q->where('email', 'like', "%{$term}%")
+                        ->orWhere('enrollment_number', 'like', "%{$term}%")
+                        ->orWhereHas('user', function ($uq) use ($term): void {
+                            $uq->where('name', 'like', "%{$term}%")
+                                ->orWhere('email', 'like', "%{$term}%");
+                        });
+
+                    if ($digits !== '') {
+                        $q->orWhere('cpf', 'like', '%'.$digits.'%');
+                    }
+                });
+            })
+            ->orderBy('id')
+            ->limit(20)
+            ->get()
+            ->map(function (Student $student): array {
+                $cpf = preg_replace('/\D/', '', (string) $student->cpf) ?? '';
+                $cpfLabel = strlen($cpf) === 11
+                    ? substr($cpf, 0, 3).'.'.substr($cpf, 3, 3).'.'.substr($cpf, 6, 3).'-'.substr($cpf, 9, 2)
+                    : '';
+
+                return [
+                    'id' => $student->id,
+                    'name' => $student->user?->name ?? 'Sem nome',
+                    'email' => $student->user?->email ?? $student->email ?? '',
+                    'cpf' => $cpfLabel,
+                    'cidade' => $student->cidade ?: '',
+                ];
+            });
+
+        return response()->json($results);
+    }
+
     public function storeManualParticipant(
         StoreEventParticipantRequest $request,
         Event $evento,
@@ -163,7 +208,13 @@ class EventController extends Controller
         EnrollmentServiceInterface $enrollmentService
     ): RedirectResponse {
         try {
-            $student = $studentService->findOrCreateForManualEnrollment($request->safe()->except(['presente']));
+            if ($request->filled('student_id')) {
+                $student = Student::query()->findOrFail((int) $request->integer('student_id'));
+            } else {
+                $student = $studentService->findOrCreateForManualEnrollment(
+                    $request->safe()->except(['presente', 'student_id', 'palestra_ids'])
+                );
+            }
             $enrollmentService->inscreverEmEventoAdmin(
                 (int) $student->id,
                 (int) $evento->id,

@@ -245,3 +245,27 @@ it('evento de um dia ainda usa o teto de vagas do evento', function () {
     expect(fn () => app(EnrollmentService::class)->inscreverEmEvento((int) $aluno2->id, (int) $event->id))
         ->toThrow(ValidationException::class);
 });
+
+it('portal lista a capa do evento quando houver foto', function () {
+    $tenant = evp2Tenant();
+    Event::forceCreate([
+        'tenant_id' => $tenant->id,
+        'title' => 'Sessão com capa',
+        'date_time' => now()->addDays(2),
+        'photo_path' => 'events/photos/capa-teste.jpg',
+        'city' => 'Araras',
+    ]);
+    Event::forceCreate([
+        'tenant_id' => $tenant->id,
+        'title' => 'Sessão sem capa',
+        'date_time' => now()->addDays(3),
+        'city' => 'Araras',
+    ]);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->get('http://'.$host.'/eventos')
+        ->assertOk()
+        ->assertSee('Sessão com capa')
+        ->assertSee('storage/events/photos/capa-teste.jpg')
+        ->assertSee('Sessão sem capa');
+});

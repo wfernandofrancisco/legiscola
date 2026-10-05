@@ -99,6 +99,7 @@ Route::prefix('admin')
         Route::get('escola/aulas/turmas-busca', [ClassLessonController::class, 'searchCourseClasses'])->name('aulas.turmas.search');
         Route::get('escola/eventos/{evento}/inscritos-pdf', [EventController::class, 'printEnrollmentsPdf'])->name('eventos.inscritos-pdf');
         Route::get('escola/eventos/{evento}/triagem-pdf', [EventController::class, 'printEventTriagemPdf'])->name('eventos.triagem-pdf');
+        Route::get('escola/eventos/{evento}/alunos-busca', [EventController::class, 'searchStudents'])->name('eventos.alunos.search');
         Route::post('escola/eventos/{evento}/inscricoes', [EventController::class, 'storeManualParticipant'])->name('eventos.inscricao.store');
         Route::patch('escola/eventos/{evento}/inscricoes/{event_enrollment}', [EventController::class, 'updateEnrollmentPresente'])->name('eventos.inscricao.update');
         Route::post('escola/eventos/{evento}/inscricoes/todos-presentes', [EventController::class, 'markAllEnrollmentsPresente'])->name('eventos.inscricao.todos-presentes');

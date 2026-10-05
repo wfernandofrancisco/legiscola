@@ -4,6 +4,7 @@ namespace App\Http\Requests\Escola;
 
 use App\Rules\CpfRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StoreEventParticipantRequest extends FormRequest
@@ -33,6 +34,24 @@ class StoreEventParticipantRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->filled('student_id')) {
+            $tenantId = auth()->user()?->tenant_id;
+
+            return [
+                'student_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('students', 'id')->when(
+                        $tenantId !== null,
+                        fn ($rule) => $rule->where('tenant_id', $tenantId)
+                    ),
+                ],
+                'presente' => ['sometimes', 'boolean'],
+                'palestra_ids' => ['nullable', 'array'],
+                'palestra_ids.*' => ['integer'],
+            ];
+        }
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
@@ -53,6 +72,7 @@ class StoreEventParticipantRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'student_id' => 'aluno',
             'name' => 'nome completo',
             'email' => 'e-mail',
             'birth_date' => 'data de nascimento',
@@ -60,6 +80,17 @@ class StoreEventParticipantRequest extends FormRequest
             'cpf' => 'CPF',
             'cidade' => 'cidade',
             'password' => 'senha',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'student_id.required' => 'Selecione um aluno na busca antes de inscrever.',
+            'student_id.exists' => 'Aluno não encontrado nesta escola.',
         ];
     }
 }
