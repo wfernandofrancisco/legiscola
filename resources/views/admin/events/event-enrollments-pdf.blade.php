@@ -207,14 +207,14 @@
                     $nome = $u?->name ?? $stu?->email ?? '—';
                     $email = $u?->email ?? $stu?->email ?? '—';
                     $cpfRaw = $stu?->cpf ?? $u?->cpf ?? '';
-                    $cpfMasked = \App\Support\SensitiveMask::cpfHalfMasked($cpfRaw);
+                    $cpf = \App\Support\SensitiveMask::cpfFormatted($cpfRaw);
                     $nasc = $stu?->birth_date?->format('d/m/Y') ?? '—';
                 @endphp
                 <tr>
                     <td class="col-num">{{ $index + 1 }}</td>
                     <td class="col-name">{{ $nome }}</td>
                     <td class="col-email">{{ \Illuminate\Support\Str::limit($email, 48) }}</td>
-                    <td class="col-cpf">{{ $cpfMasked }}</td>
+                    <td class="col-cpf">{{ $cpf }}</td>
                     <td class="col-birth">{{ $nasc }}</td>
                 </tr>
             @endforeach
@@ -225,7 +225,7 @@
         <table class="footer-table">
             <tr>
                 <td class="footer-left">
-                    {{ $tenant?->display_name ?? $tenant?->name ?? 'Instituição' }} — CPF parcialmente oculto por privacidade.
+                    {{ $tenant?->display_name ?? $tenant?->name ?? 'Instituição' }} — Lista de inscritos.
                 </td>
                 <td class="footer-right">
                     Emitido em {{ ($printedAt ?? now())->format('d/m/Y H:i') }}
