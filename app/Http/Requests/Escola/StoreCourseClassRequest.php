@@ -24,6 +24,9 @@ class StoreCourseClassRequest extends FormRequest
                 : null,
             'satisfaction_survey_required' => $this->boolean('satisfaction_survey_required'),
         ]);
+
+        $this->normalizeGradeInput();
+        $this->dropWeeklySchedulesWhenOnline();
     }
 
     public function rules(): array
@@ -43,10 +46,10 @@ class StoreCourseClassRequest extends FormRequest
             ],
             'satisfaction_survey_required' => ['boolean'],
             'status' => ['required', 'in:cadastrado,inscricao,em_andamento,concluido,cancelado'],
-            'schedules' => ['required_if:tipo_turma,presencial', 'array', 'min:1'],
-            'schedules.*.weekday' => ['required_with:schedules.*.start_time,schedules.*.end_time', 'integer', 'between:0,6'],
-            'schedules.*.start_time' => ['required_with:schedules.*.weekday,schedules.*.end_time', 'date_format:H:i'],
-            'schedules.*.end_time' => ['required_with:schedules.*.weekday,schedules.*.start_time', 'date_format:H:i'],
+            'schedules' => ['exclude_if:tipo_turma,online', 'required_if:tipo_turma,presencial', 'array', 'min:1'],
+            'schedules.*.weekday' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.start_time,schedules.*.end_time', 'integer', 'between:0,6'],
+            'schedules.*.start_time' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.weekday,schedules.*.end_time', 'nullable', 'date_format:H:i'],
+            'schedules.*.end_time' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.weekday,schedules.*.start_time', 'nullable', 'date_format:H:i'],
             'teacher_ids' => ['nullable', 'array'],
             'teacher_ids.*' => [
                 'integer',
@@ -70,8 +73,36 @@ class StoreCourseClassRequest extends FormRequest
                 return;
             }
 
-            $grade = collect($this->input('grade', []));
-            $scheduled = $grade->filter(fn ($row) => filled($row['date'] ?? null) && filled($row['start_time'] ?? null) && filled($row['end_time'] ?? null));
+            $grade = collect($this->input('grade', []))->filter(fn ($row) => is_array($row));
+
+            $presencialIncompleta = $grade->contains(function (array $row): bool {
+                if ($this->gradeRowIsOnline($row)) {
+                    return false;
+                }
+
+                return ! filled($row['date'] ?? null)
+                    || ! filled($row['start_time'] ?? null)
+                    || ! filled($row['end_time'] ?? null);
+            });
+
+            if ($presencialIncompleta) {
+                $validator->errors()->add(
+                    'grade',
+                    'Nas aulas presenciais, informe data, início e término. Aula marcada como online não precisa desses campos.'
+                );
+
+                return;
+            }
+
+            $scheduled = $grade->filter(function (array $row): bool {
+                if ($this->gradeRowIsOnline($row)) {
+                    return filled($row['course_lesson_id'] ?? null) || filled($row['catalog_lesson_id'] ?? null);
+                }
+
+                return filled($row['date'] ?? null)
+                    && filled($row['start_time'] ?? null)
+                    && filled($row['end_time'] ?? null);
+            });
 
             if ($course->isFromCatalog()) {
                 $course->loadMissing('catalogItem.lessons');

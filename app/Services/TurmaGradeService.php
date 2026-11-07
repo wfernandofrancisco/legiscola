@@ -20,7 +20,7 @@ class TurmaGradeService
     public function materialize(CourseClass $turma, array $rows): void
     {
         foreach ($rows as $row) {
-            if (! $this->rowHasSchedule($row)) {
+            if (! $this->rowShouldCreate($turma, $row)) {
                 continue;
             }
 
@@ -37,10 +37,6 @@ class TurmaGradeService
     public function sync(CourseClass $turma, array $rows): void
     {
         foreach ($rows as $row) {
-            if (! $this->rowHasSchedule($row)) {
-                continue;
-            }
-
             $existingId = (int) ($row['class_lesson_id'] ?? 0);
             if ($existingId > 0) {
                 $lesson = ClassLesson::query()
@@ -50,15 +46,16 @@ class TurmaGradeService
                     ->first();
 
                 if ($lesson) {
-                    $lesson->update([
-                        'date' => $row['date'],
-                        'start_time' => $row['start_time'],
-                        'end_time' => $row['end_time'],
-                        'is_online' => $this->rowIsOnline($turma, $row),
-                    ]);
+                    if ($this->rowShouldUpdate($turma, $row)) {
+                        $lesson->update($this->scheduleAttributes($turma, $row));
+                    }
 
                     continue;
                 }
+            }
+
+            if (! $this->rowShouldCreate($turma, $row)) {
+                continue;
             }
 
             $this->createFromRow($turma, $row);
@@ -94,11 +91,49 @@ class TurmaGradeService
             'course_lesson_id' => $courseLesson?->id,
             'catalog_lesson_id' => $catalogLesson?->id,
             'title' => $title,
-            'date' => $row['date'],
-            'start_time' => $row['start_time'],
-            'end_time' => $row['end_time'],
-            'is_online' => $this->rowIsOnline($turma, $row),
+            ...$this->scheduleAttributes($turma, $row),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{date: mixed, start_time: mixed, end_time: mixed, is_online: bool}
+     */
+    private function scheduleAttributes(CourseClass $turma, array $row): array
+    {
+        return [
+            'date' => filled($row['date'] ?? null) ? $row['date'] : null,
+            'start_time' => filled($row['start_time'] ?? null) ? $row['start_time'] : null,
+            'end_time' => filled($row['end_time'] ?? null) ? $row['end_time'] : null,
+            'is_online' => $this->rowIsOnline($turma, $row),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function rowShouldCreate(CourseClass $turma, array $row): bool
+    {
+        if ($this->rowIsOnline($turma, $row)) {
+            return filled($row['course_lesson_id'] ?? null) || filled($row['catalog_lesson_id'] ?? null);
+        }
+
+        return $this->rowHasSchedule($row);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function rowShouldUpdate(CourseClass $turma, array $row): bool
+    {
+        if ($this->rowIsOnline($turma, $row)) {
+            return true;
+        }
+
+        return $this->rowHasSchedule($row)
+            || filled($row['date'] ?? null)
+            || filled($row['start_time'] ?? null)
+            || filled($row['end_time'] ?? null);
     }
 
     private function alreadyMaterialized(CourseClass $turma, string $column, int $id): bool

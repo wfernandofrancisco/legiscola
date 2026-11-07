@@ -81,7 +81,8 @@
                 <div class="mb-3">
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">Grade desta turma</p>
                     <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                        Lista as aulas do curso. Aqui você define dia, horário e se é presencial ou online.
+                        Lista as aulas do curso. Aula presencial precisa de data, início e término.
+                        Se marcar <strong>Online</strong>, esses campos ficam opcionais.
                         O conteúdo (vídeo/material) continua no curso.
                     </p>
                 </div>
@@ -133,6 +134,7 @@
                     @foreach($initialSchedules as $i => $schedule)
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-2 schedule-row">
                             <x-form.select name="schedules[{{ $i }}][weekday]" label="Dia da semana" :options="[
+                                '' => 'Selecione',
                                 '1' => 'Segunda',
                                 '2' => 'Terça',
                                 '3' => 'Quarta',
@@ -271,18 +273,37 @@
                         var old = oldGrade[index] || {};
                         var courseLessonId = lesson.course_lesson_id || '';
                         var catalogLessonId = lesson.catalog_lesson_id || '';
-                        var onlineChecked = old.is_online !== undefined ? !!Number(old.is_online) : isOnlineDefault();
-                        return '<div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">'
+                        var onlineChecked = old.is_online !== undefined && old.is_online !== null
+                            ? !!Number(old.is_online)
+                            : isOnlineDefault();
+                        var startValue = old.start_time ? old.start_time : (onlineChecked ? '' : '19:00');
+                        var endValue = old.end_time ? old.end_time : (onlineChecked ? '' : '21:00');
+                        var requiredAttr = onlineChecked ? '' : ' required';
+                        return '<div class="js-grade-row rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">'
                             + '<p class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">' + (index + 1) + '. ' + lesson.title + '</p>'
                             + (courseLessonId ? '<input type="hidden" name="grade[' + index + '][course_lesson_id]" value="' + courseLessonId + '">' : '')
                             + (catalogLessonId ? '<input type="hidden" name="grade[' + index + '][catalog_lesson_id]" value="' + catalogLessonId + '">' : '')
                             + '<div class="grid grid-cols-1 gap-2 sm:grid-cols-4">'
-                            + '<input type="date" name="grade[' + index + '][date]" value="' + (old.date || '') + '" class="js-grade-date rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
-                            + '<input type="time" name="grade[' + index + '][start_time]" value="' + (old.start_time || '19:00') + '" class="js-grade-start rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
-                            + '<input type="time" name="grade[' + index + '][end_time]" value="' + (old.end_time || '21:00') + '" class="js-grade-end rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" required>'
-                            + '<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><input type="hidden" name="grade[' + index + '][is_online]" value="0"><input type="checkbox" name="grade[' + index + '][is_online]" value="1"' + (onlineChecked ? ' checked' : '') + '> Online</label>'
+                            + '<input type="date" name="grade[' + index + '][date]" value="' + (old.date || '') + '" class="js-grade-date rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"' + requiredAttr + '>'
+                            + '<input type="time" name="grade[' + index + '][start_time]" value="' + startValue + '" class="js-grade-start rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"' + requiredAttr + '>'
+                            + '<input type="time" name="grade[' + index + '][end_time]" value="' + endValue + '" class="js-grade-end rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"' + requiredAttr + '>'
+                            + '<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><input type="hidden" name="grade[' + index + '][is_online]" value="0"><input type="checkbox" class="js-grade-online" name="grade[' + index + '][is_online]" value="1"' + (onlineChecked ? ' checked' : '') + '> Online</label>'
                             + '</div></div>';
                     }).join('');
+                    gradeRows.querySelectorAll('.js-grade-row').forEach(applyGradeRow);
+                }
+
+                function applyGradeRow(row) {
+                    if (!row) return;
+                    var checkbox = row.querySelector('.js-grade-online');
+                    var online = !!(checkbox && checkbox.checked);
+                    row.querySelectorAll('.js-grade-date, .js-grade-start, .js-grade-end').forEach(function (input) {
+                        if (online) {
+                            input.removeAttribute('required');
+                        } else {
+                            input.setAttribute('required', 'required');
+                        }
+                    });
                 }
 
                 function loadGrade(id) {
@@ -302,12 +323,26 @@
                         var tStart = document.getElementById('grade-fill-start').value;
                         var tEnd = document.getElementById('grade-fill-end').value;
                         if (!start) return;
-                        var dates = gradeRows.querySelectorAll('.js-grade-date');
-                        dates.forEach(function (input, i) {
-                            input.value = addDays(start, i * interval);
+                        var step = 0;
+                        gradeRows.querySelectorAll('.js-grade-row').forEach(function (row) {
+                            var checkbox = row.querySelector('.js-grade-online');
+                            if (checkbox && checkbox.checked) return;
+                            var date = row.querySelector('.js-grade-date');
+                            var startInput = row.querySelector('.js-grade-start');
+                            var endInput = row.querySelector('.js-grade-end');
+                            if (date) date.value = addDays(start, step * interval);
+                            if (startInput) startInput.value = tStart;
+                            if (endInput) endInput.value = tEnd;
+                            step++;
                         });
-                        gradeRows.querySelectorAll('.js-grade-start').forEach(function (input) { input.value = tStart; });
-                        gradeRows.querySelectorAll('.js-grade-end').forEach(function (input) { input.value = tEnd; });
+                    });
+                }
+
+                if (gradeRows) {
+                    gradeRows.addEventListener('change', function (e) {
+                        var checkbox = e.target.closest('.js-grade-online');
+                        if (!checkbox) return;
+                        applyGradeRow(checkbox.closest('.js-grade-row'));
                     });
                 }
 
@@ -317,7 +352,11 @@
 
                 function toggleScheduleVisibility() {
                     if (!tipoTurma || !scheduleWrapper) return;
-                    scheduleWrapper.style.display = tipoTurma.value === 'presencial' ? 'block' : 'none';
+                    var presencial = tipoTurma.value === 'presencial';
+                    scheduleWrapper.style.display = presencial ? 'block' : 'none';
+                    scheduleWrapper.querySelectorAll('input, select, button').forEach(function (el) {
+                        el.disabled = !presencial;
+                    });
                 }
 
                 function rowTemplate(index) {
@@ -326,7 +365,7 @@
                         <div class="relative">
                             <label class="absolute left-3 -top-2 bg-white dark:bg-gray-800 px-1 text-[11px] font-medium text-gray-800 dark:text-white">Dia da semana</label>
                             <select name="schedules[${index}][weekday]" class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100">
-                                <option value="">Selecione</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option>
+                                <option value="" selected>Selecione</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option>
                             </select>
                         </div>
                         <div class="relative"><label class="absolute left-3 -top-2 bg-white dark:bg-gray-800 px-1 text-[11px] font-medium text-gray-800 dark:text-white">Início</label><input type="time" name="schedules[${index}][start_time]" class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100"></div>

@@ -217,3 +217,80 @@ it('abre turma do catálogo com horário diferente por aula', function () {
         ->and($aulas[1]->is_online)->toBeFalse()
         ->and($aulas[0]->catalog_lesson_id)->toBe($lessons[0]->id);
 });
+
+it('cria turma online com aula online sem data nem horário', function () {
+    $tenant = gradeTenant('online-sem-hora-'.uniqid());
+    TenantContext::set($tenant->id);
+    $course = gradeCourse($tenant);
+    $aula = app(CourseLessonService::class)->create($course, ['title' => 'Aula 01']);
+    $admin = gradeAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->post('http://'.$host.'/admin/escola/turmas', [
+            'course_id' => $course->id,
+            'name' => 'Turma online',
+            'tipo_turma' => 'online',
+            'max_seats' => 20,
+            'enrollment_start' => '2027-01-01T08:00',
+            'enrollment_end' => '2027-02-01T18:00',
+            'status' => 'cadastrado',
+            'schedules' => [
+                ['weekday' => '1', 'start_time' => '', 'end_time' => ''],
+            ],
+            'grade' => [
+                [
+                    'course_lesson_id' => $aula->id,
+                    'date' => '',
+                    'start_time' => '',
+                    'end_time' => '',
+                    'is_online' => '1',
+                ],
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $criada = ClassLesson::withoutGlobalScopes()->where('course_lesson_id', $aula->id)->first();
+
+    expect($criada)->not->toBeNull()
+        ->and($criada->is_online)->toBeTrue()
+        ->and($criada->date)->toBeNull()
+        ->and($criada->start_time)->toBeNull()
+        ->and($criada->end_time)->toBeNull();
+});
+
+it('exige data e horário quando a aula da grade não é online', function () {
+    $tenant = gradeTenant('presencial-hora-'.uniqid());
+    TenantContext::set($tenant->id);
+    $course = gradeCourse($tenant);
+    $aula = app(CourseLessonService::class)->create($course, ['title' => 'Aula 01']);
+    $admin = gradeAdmin($tenant);
+    $host = $tenant->slug.'.'.config('app.domain');
+
+    $this->actingAs($admin)
+        ->from('http://'.$host.'/admin/escola/turmas/create')
+        ->post('http://'.$host.'/admin/escola/turmas', [
+            'course_id' => $course->id,
+            'name' => 'Turma presencial',
+            'tipo_turma' => 'presencial',
+            'max_seats' => 20,
+            'enrollment_start' => '2027-01-01T08:00',
+            'enrollment_end' => '2027-02-01T18:00',
+            'status' => 'cadastrado',
+            'schedules' => [
+                ['weekday' => '2', 'start_time' => '19:00', 'end_time' => '21:00'],
+            ],
+            'grade' => [
+                [
+                    'course_lesson_id' => $aula->id,
+                    'date' => '',
+                    'start_time' => '',
+                    'end_time' => '',
+                    'is_online' => '0',
+                ],
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('grade');
+});

@@ -187,7 +187,7 @@
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold text-slate-900 dark:text-white">Grade desta turma</h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Data, horário e modalidade. Presença continua em cada aula desta lista.</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Aula presencial precisa de data e horário. Aula marcada como online pode ficar sem data, início e término. Presença continua em cada aula desta lista.</p>
                 </div>
             </div>
 

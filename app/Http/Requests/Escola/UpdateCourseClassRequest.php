@@ -24,6 +24,8 @@ class UpdateCourseClassRequest extends FormRequest
                 : null,
             'satisfaction_survey_required' => $this->boolean('satisfaction_survey_required'),
         ]);
+
+        $this->dropWeeklySchedulesWhenOnline();
     }
 
     public function rules(): array
@@ -43,10 +45,10 @@ class UpdateCourseClassRequest extends FormRequest
             ],
             'satisfaction_survey_required' => ['boolean'],
             'status' => ['required', 'in:cadastrado,inscricao,em_andamento,concluido,cancelado'],
-            'schedules' => ['required_if:tipo_turma,presencial', 'array', 'min:1'],
-            'schedules.*.weekday' => ['required_with:schedules.*.start_time,schedules.*.end_time', 'integer', 'between:0,6'],
-            'schedules.*.start_time' => ['required_with:schedules.*.weekday,schedules.*.end_time', 'date_format:H:i'],
-            'schedules.*.end_time' => ['required_with:schedules.*.weekday,schedules.*.start_time', 'date_format:H:i'],
+            'schedules' => ['exclude_if:tipo_turma,online', 'required_if:tipo_turma,presencial', 'array', 'min:1'],
+            'schedules.*.weekday' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.start_time,schedules.*.end_time', 'integer', 'between:0,6'],
+            'schedules.*.start_time' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.weekday,schedules.*.end_time', 'nullable', 'date_format:H:i'],
+            'schedules.*.end_time' => ['exclude_if:tipo_turma,online', 'required_with:schedules.*.weekday,schedules.*.start_time', 'nullable', 'date_format:H:i'],
             'teacher_ids' => ['nullable', 'array'],
             'teacher_ids.*' => [
                 'integer',
